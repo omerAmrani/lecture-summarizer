@@ -17,8 +17,8 @@ pnpm with workspaces (`api`, `web`). Always run installs from root.
 Run both apps: `pnpm dev`
 
 Run or build one app:
-turbo run dev --filter=@lecture-summarizer/<api|web>
-turbo run build --filter=@lecture-summarizer/<api|web>
+pnpm --filter=@lecture-summarizer/<api|web> dev
+pnpm --filter=@lecture-summarizer/<api|web> build
 
 Add a dep to one app:
 pnpm add <package> --filter=@lecture-summarizer/<api|web>

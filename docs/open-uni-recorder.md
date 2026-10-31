@@ -4,7 +4,7 @@ Personal tool for automatically detecting, downloading, transcribing, and summar
 
 **Stack:** NestJS API (port 3001) · Next.js 15 web UI (port 3000) · SQLite · Whisper (Groq / whisper.cpp) · AI summarization (Gemini / Groq / Claude / Ollama)
 
-**Local dev:** `turbo run dev --filter=@lecture-summarizer/api` and `turbo run dev --filter=@lecture-summarizer/web`
+**Local dev:** `pnpm --filter=@lecture-summarizer/api dev` and `pnpm --filter=@lecture-summarizer/web dev`
 
 **Local service (non-dev):** a macOS menu bar app runs both as production child processes without a terminal — see [local-service.md](local-service.md).
 

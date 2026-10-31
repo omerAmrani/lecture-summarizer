@@ -30,8 +30,6 @@ tmp
 **/.env*.local
 
 # Dev tooling
-.turbo
-**/.turbo
 .git
 .gitignore
 .dockerignore

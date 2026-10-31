@@ -17,7 +17,6 @@ coverage
 test-results
 
 # Turbo
-.turbo
 
 # Vercel
 .vercel

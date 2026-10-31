@@ -69,6 +69,6 @@ docs/                      User guide, ADRs
 
 ```bash
 pnpm dev                                  # start API + web
-turbo run build --filter=@lecture-summarizer/api   # build one app (api or web)
+pnpm --filter=@lecture-summarizer/api build    # build one app (api or web)
 pnpm add <package> --filter=@lecture-summarizer/web # add a dep to an app
 ```

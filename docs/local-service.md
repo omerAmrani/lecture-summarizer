@@ -1,6 +1,6 @@
 # Local service (macOS tray)
 
-A menu bar app that runs `api` and `web` as owned child processes, so both apps can run without a terminal open. This is an alternative to `turbo run dev` for normal (non-development) use — it runs production builds, not dev servers.
+A menu bar app that runs `api` and `web` as owned child processes, so both apps can run without a terminal open. This is an alternative to `pnpm dev` for normal (non-development) use — it runs production builds, not dev servers.
 
 **Scope:** macOS only. No OS-level background service (no launchd) — the tray app itself spawns, health-polls, and owns both child processes. When the tray quits, both processes stop; when it launches, both start. `.dmg`/`.exe` installer packaging is a separate, not-yet-built layer (currently `swift build` + manual copy to `~/Applications`).
 
@@ -17,7 +17,7 @@ pnpm tray:build
 open ~/Applications/OpenUniRecorder.app
 ```
 
-`tray:build` runs `turbo run build` for both apps, then `tray/mac/build.sh`, which `swift build -c release`s the tray and copies it to `~/Applications/OpenUniRecorder.app`.
+`tray:build` runs `pnpm -r build` for both apps, then `tray/mac/build.sh`, which `swift build -c release`s the tray and copies it to `~/Applications/OpenUniRecorder.app`.
 
 First launch: the build is unsigned, so macOS Gatekeeper blocks a plain double-click. In Finder, right-click `OpenUniRecorder.app` → Open, then confirm once. Subsequent launches work normally.
 
