@@ -60,7 +60,11 @@ describe('HealthController', () => {
       claude.restore();
 
       expect(res.status).toBe(200);
-      expect(res.body).toEqual({ localMode: false, opal: true, groq: true, gemini: true, claude: false, openai: false });
+      expect(res.body).toMatchObject({ localMode: false, opal: true, groq: true, gemini: true, claude: false, openai: false });
+      expect(res.body.envKeys.groq).toBe('GROQ_API_KEY');
+      expect(res.body.missing).toEqual({ transcribe: [], summarize: [] });
+      // Booleans and key names only — never a key's value.
+      expect(JSON.stringify(res.body)).not.toContain(config.GEMINI_API_KEY!);
     });
   });
 

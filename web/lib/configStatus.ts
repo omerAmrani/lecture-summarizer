@@ -5,28 +5,22 @@ import { apiFetch } from './api';
 
 // Which keys the API has in its .env — booleans only, never the values
 // (see GET /api/config/status, docs/adr/0002).
-export interface ConfigStatus {
-  localMode: boolean;
-  opal: boolean;
-  groq: boolean;
-  gemini: boolean;
-  claude: boolean;
-  openai: boolean;
-}
+export type CredentialId = 'opal' | 'groq' | 'gemini' | 'claude' | 'openai';
 
-const ENV_FILE = '.env';
+export interface ConfigStatus extends Record<CredentialId, boolean> {
+  localMode: boolean;
+  // .env key names come from the API, so they're spelled out in one place (api/src/credentials.ts).
+  envKeys: Record<CredentialId, string>;
+  missing: { transcribe: string[]; summarize: string[] };
+}
 
 // null = everything this action needs is set; otherwise a hint for the user.
 export function missingFor(status: ConfigStatus | null, action: 'transcribe' | 'summarize'): string | null {
-  if (!status) return null;
-  const missing: string[] = [];
-  if (action === 'transcribe') {
-    if (!status.opal) missing.push('OPENU_USERNAME / OPENU_PASSWORD / OPENU_ID');
-    if (!status.groq) missing.push('GROQ_API_KEY');
-  } else if (!status.gemini && !status.claude && !status.openai) {
-    missing.push('GEMINI_API_KEY, ANTHROPIC_API_KEY או OPENAI_API_KEY');
-  }
-  return missing.length ? `חסר ב-${ENV_FILE}: ${missing.join(', ')}` : null;
+  const missing = status?.missing?.[action];
+  if (!missing?.length) return null;
+  // transcribe needs every listed key; summarize needs any one of them.
+  const list = action === 'transcribe' ? missing.join(', ') : missing.join(' / ');
+  return `חסר ב-.env: ${list}`;
 }
 
 export function useConfigStatus(): ConfigStatus | null {

@@ -7,7 +7,8 @@ import { Button } from '@/app/components/Button';
 import { Select } from '@/app/components/Select';
 import { SEMESTER_HE } from '@/lib/status';
 import {SEMESTER_ORDER, getSelectedSemester, setSelectedSemester} from '@/lib/selectedSemester';
-import { useConfigStatus, ConfigStatus } from '@/lib/configStatus';
+import { useConfigStatus } from '@/lib/configStatus';
+import type { CredentialId } from '@/lib/configStatus';
 import { SummarizePicker, useSummarizeDefault } from '@/app/components/SummarizePicker';
 import type { SummarizeChoice } from '@/app/components/SummarizePicker';
 
@@ -57,25 +58,16 @@ const MODELS: { key: ModelKey; emoji: string; name: string; sub: string; role: s
   { key: 'openai', emoji: 'O', name: 'OpenAI', sub: 'ChatGPT', role: 'סיכומים' },
 ];
 
-// Read-only: credentials live in the API's .env (docs/adr/0002).
-const ENV_KEYS: { label: string; keys: string; isSet: (s: ConfigStatus) => boolean; getKey?: { url: string; hint: string } }[] = [
-  { label: 'האוניברסיטה הפתוחה', keys: 'OPENU_USERNAME / OPENU_PASSWORD / OPENU_ID', isSet: (s) => s.opal },
+// Read-only: credentials live in .env (docs/adr/0002); key names come from the API's status.
+const ENV_KEYS: { id: CredentialId; label: string; getKey?: { url: string; hint: string } }[] = [
+  { id: 'opal', label: 'האוניברסיטה הפתוחה' },
+  { id: 'groq', label: 'Groq (תמלול)', getKey: { url: 'https://console.groq.com/keys', hint: 'חינמי · צרו מפתח והדביקו ב-.env' } },
   {
-    label: 'Groq (תמלול)', keys: 'GROQ_API_KEY', isSet: (s) => s.groq,
-    getKey: { url: 'https://console.groq.com/keys', hint: 'חינמי · צרו מפתח והדביקו ב-GROQ_API_KEY' },
+    id: 'gemini', label: 'Gemini (סיכום)',
+    getKey: { url: 'https://aistudio.google.com/app/apikey', hint: 'יש מסלול חינמי · התחברו עם Google, צרו מפתח והדביקו ב-.env' },
   },
-  {
-    label: 'Gemini (סיכום)', keys: 'GEMINI_API_KEY', isSet: (s) => s.gemini,
-    getKey: { url: 'https://aistudio.google.com/app/apikey', hint: 'יש מסלול חינמי · התחברו עם Google, צרו מפתח והדביקו ב-GEMINI_API_KEY' },
-  },
-  {
-    label: 'Claude (סיכום)', keys: 'ANTHROPIC_API_KEY', isSet: (s) => s.claude,
-    getKey: { url: 'https://platform.claude.com/settings/keys', hint: 'בתשלום · צרו מפתח והדביקו ב-ANTHROPIC_API_KEY' },
-  },
-  {
-    label: 'OpenAI (סיכום)', keys: 'OPENAI_API_KEY', isSet: (s) => s.openai,
-    getKey: { url: 'https://platform.openai.com/api-keys', hint: 'בתשלום · צרו מפתח והדביקו ב-OPENAI_API_KEY' },
-  },
+  { id: 'claude', label: 'Claude (סיכום)', getKey: { url: 'https://platform.claude.com/settings/keys', hint: 'בתשלום · צרו מפתח והדביקו ב-.env' } },
+  { id: 'openai', label: 'OpenAI (סיכום)', getKey: { url: 'https://platform.openai.com/api-keys', hint: 'בתשלום · צרו מפתח והדביקו ב-.env' } },
 ];
 
 export default function SettingsPage() {
@@ -385,19 +377,20 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
-          {ENV_KEYS.map(({ label, keys, isSet, getKey }) => {
-            const set = configStatus ? isSet(configStatus) : null;
+          {ENV_KEYS.map(({ id, label, getKey }) => {
+            const set = configStatus ? configStatus[id] : null;
+            const keys = configStatus?.envKeys?.[id];
             return (
-              <div key={keys} className="cred-field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div key={id} className="cred-field" data-testid={`cred-${id}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div className="cred-field__label">
                     {getKey ? (
-                      <a href={getKey.url} target="_blank" rel="noopener noreferrer" title={getKey.hint}>{label} ↗</a>
+                      <a href={getKey.url} target="_blank" rel="noopener noreferrer" title={keys ? `${getKey.hint} (${keys})` : getKey.hint}>{label} ↗</a>
                     ) : label}
                   </div>
-                  <div style={{ font: '0.78rem var(--font-mono)', color: 'var(--muted)' }}>{keys}</div>
+                  {keys && <div style={{ font: '0.78rem var(--font-mono)', color: 'var(--muted)' }}>{keys}</div>}
                 </div>
-                <span>{set === null ? '—' : set ? '✅' : '❌'}</span>
+                <span data-testid="cred-state">{set === null ? '—' : set ? '✅' : '❌'}</span>
               </div>
             );
           })}

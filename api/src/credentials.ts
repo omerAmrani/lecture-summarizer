@@ -19,16 +19,19 @@ export function isSummarizeBackend(name: unknown): name is SummarizeBackendName 
   return SUMMARIZE_BACKENDS.includes(name as SummarizeBackendName);
 }
 
-const KEY_ENV: Record<SummarizeBackendName, string> = {
+// The only place .env key names are spelled out; the web gets them from GET /api/config/status.
+export const ENV_KEYS = {
+  opal: 'OPENU_USERNAME / OPENU_PASSWORD / OPENU_ID',
+  groq: 'GROQ_API_KEY',
   gemini: 'GEMINI_API_KEY',
   claude: 'ANTHROPIC_API_KEY',
   openai: 'OPENAI_API_KEY',
-};
+} as const;
 
 export const MISSING_CREDENTIALS = {
-  opal: 'OPENU_USERNAME / OPENU_PASSWORD / OPENU_ID missing — set them in .env',
-  groq: 'GROQ_API_KEY missing — set it in .env',
-  summarize: 'GEMINI_API_KEY, ANTHROPIC_API_KEY or OPENAI_API_KEY missing — set one in .env',
+  opal: `${ENV_KEYS.opal} missing — set them in .env`,
+  groq: `${ENV_KEYS.groq} missing — set it in .env`,
+  summarize: `${ENV_KEYS.gemini}, ${ENV_KEYS.claude} or ${ENV_KEYS.openai} missing — set one in .env`,
 };
 
 export function getOpalCredentials(): OpalCredentials | null {
@@ -73,7 +76,7 @@ export function getSummarizeBackend(requested: SummarizeChoice = {}, saved: Summ
 function pickBackend(requested?: string | null, saved?: string | null): { name: SummarizeBackendName } | { error: string } {
   if (requested) {
     if (!isSummarizeBackend(requested)) return { error: `Unknown backend: ${requested}` };
-    if (!summarizeKey(requested)) return { error: `${KEY_ENV[requested]} missing — set it in .env or pick another provider` };
+    if (!summarizeKey(requested)) return { error: `${ENV_KEYS[requested]} missing — set it in .env or pick another provider` };
     return { name: requested };
   }
   for (const name of [saved, SUMMARIZE_BACKEND, ...SUMMARIZE_BACKENDS]) {
@@ -84,12 +87,22 @@ function pickBackend(requested?: string | null, saved?: string | null): { name: 
 
 // Booleans only — never expose the values themselves.
 export function getCredentialsStatus() {
-  return {
-    localMode: IS_LOCAL_MODE,
+  const set = {
     opal: !!getOpalCredentials(),
     groq: !!getGroqApiKey(),
     gemini: !!GEMINI_API_KEY,
     claude: !!ANTHROPIC_API_KEY,
     openai: !!OPENAI_API_KEY,
+  };
+  const anySummarize = SUMMARIZE_BACKENDS.some((b) => set[b]);
+  return {
+    localMode: IS_LOCAL_MODE,
+    ...set,
+    envKeys: ENV_KEYS,
+    // Key names each action still needs: transcribe needs all listed, summarize needs any one of them.
+    missing: {
+      transcribe: (['opal', 'groq'] as const).filter((k) => !set[k]).map((k) => ENV_KEYS[k]),
+      summarize: anySummarize ? [] : SUMMARIZE_BACKENDS.map((b) => ENV_KEYS[b]),
+    },
   };
 }

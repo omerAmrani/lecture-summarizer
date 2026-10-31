@@ -78,4 +78,20 @@ test.describe('Settings page', () => {
     expect((await put).postDataJSON()).toEqual({ backend: 'claude', model: 'claude-opus-x' });
     await expect(box.getByText('נשמר')).toBeVisible();
   });
+
+  test('key checklist shows each credential state and the key names from the API', async ({ page }) => {
+    await page.route('**/api/config/status', (route) =>
+      route.fulfill({
+        json: {
+          localMode: true, opal: true, groq: false, gemini: false, claude: false, openai: false,
+          envKeys: { opal: 'OPENU_X', groq: 'GROQ_X', gemini: 'GEMINI_X', claude: 'CLAUDE_X', openai: 'OPENAI_X' },
+          missing: { transcribe: ['GROQ_X'], summarize: ['GEMINI_X', 'CLAUDE_X', 'OPENAI_X'] },
+        },
+      }),
+    );
+    await page.goto('/settings');
+    await expect(page.getByTestId('cred-opal').getByTestId('cred-state')).toHaveText('✅');
+    await expect(page.getByTestId('cred-groq').getByTestId('cred-state')).toHaveText('❌');
+    await expect(page.getByTestId('cred-groq')).toContainText('GROQ_X');
+  });
 });

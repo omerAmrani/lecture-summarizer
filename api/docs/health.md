@@ -29,7 +29,7 @@ Response: `{ ok: boolean, configured: boolean, ms?: number, response?: string, e
 - `configured: true, ok: true` — backend responded successfully
 - `configured: true, ok: false` — key sent but the request failed
 
-"Which keys are set" without calling any provider is `GET /api/config/status` → `{ localMode, opal, groq, gemini, claude }` (booleans only, never values) — used by the settings page checklist and to disable transcribe/summarize buttons.
+"Which keys are set" without calling any provider is `GET /api/config/status` → `{ localMode, opal, groq, gemini, claude, openai, envKeys, missing }` — booleans and key names only, never values. `envKeys` maps each credential to its `.env` key name(s) and `missing` lists the key names each action still needs (`transcribe`: all listed are required; `summarize`: any one). Key names are defined once in `ENV_KEYS` (`src/credentials.ts`); the web never hard-codes them. Used by the settings page checklist and to disable transcribe/summarize buttons.
 
 ## Web
 

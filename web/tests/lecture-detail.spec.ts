@@ -32,6 +32,22 @@ test.describe('Lecture detail page', () => {
     await expect(page.locator('.lec-h').getByTestId('status-pct')).toHaveText(/42%/);
   });
 
+  test('summarize and re-transcribe are disabled with a hint naming the missing keys', async ({ page }) => {
+    await page.route('**/api/config/status', (route) =>
+      route.fulfill({
+        json: {
+          localMode: true, opal: true, groq: false, gemini: false, claude: false, openai: false,
+          envKeys: { opal: 'OPENU_X', groq: 'GROQ_X', gemini: 'GEMINI_X', claude: 'CLAUDE_X', openai: 'OPENAI_X' },
+          missing: { transcribe: ['GROQ_X'], summarize: ['GEMINI_X', 'CLAUDE_X', 'OPENAI_X'] },
+        },
+      }),
+    );
+    await page.goto(`/classes/${CLASS_ID}/lectures/${LECTURE_ID}`);
+    const summarize = page.getByTestId('summarize-btn');
+    await expect(summarize).toBeDisabled();
+    await expect(summarize).toHaveAttribute('title', 'חסר ב-.env: GEMINI_X / CLAUDE_X / OPENAI_X');
+  });
+
   test('shows lecture name and no-summary state for a pending lecture', async ({ page }) => {
     await page.goto(`/classes/${CLASS_ID}/lectures/${LECTURE_ID}`);
     await expect(page.locator('h1')).toContainText('E2E Test Lecture');

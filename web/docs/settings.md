@@ -26,7 +26,7 @@ Single-page control panel at `/settings` for managing app configuration, the pro
 - No scheduled detection — "בדוק עכשיו" is manual; the only automatic Detect is the one-off run right after creating a course (see `classes.md`)
 
 **Credentials** (read-only — credentials live in the repo-root `.env`, see docs/adr/0002):
-- Checklist of OPAL / Groq / Gemini / Claude / OpenAI keys from `GET /api/config/status` (✅/❌, never the values), plus which keys each action needs
+- Checklist of OPAL / Groq / Gemini / Claude / OpenAI keys from `GET /api/config/status` (✅/❌, never the values). The key names shown come from the status's `envKeys`, not from web code
 - Groq / Gemini / Claude / OpenAI provider names link to the provider's API-keys page (new tab); hovering shows a `title` hint with the price tier and which `.env` var to paste into
 - No credential form — edit `.env` and restart the API. Transcribe/summarize buttons on the class and lecture pages are disabled with a hint when their keys are missing (`lib/configStatus.ts`)
 
