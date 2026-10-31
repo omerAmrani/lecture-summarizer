@@ -9,6 +9,7 @@ import { sortBySemester, useSelectedSemester } from '@/lib/selectedSemester';
 import NewCourseModal from '@/app/components/NewCourseModal';
 
 const ISSUES_URL = 'https://github.com/omerAmrani/lecture-summarizer/issues/new';
+const CONTACT_EMAIL = 'omeraiagent@gmail.com';
 
 interface ClassRow {
   id: string;
@@ -43,6 +44,17 @@ export default function Sidebar() {
       })
       .catch(() => {});
   }, []);
+
+  const [copyMsg, setCopyMsg] = useState<string | null>(null);
+  const copyEmail = async () => {
+    try {
+      await navigator.clipboard.writeText(CONTACT_EMAIL);
+      setCopyMsg('המייל הועתק');
+    } catch {
+      setCopyMsg(CONTACT_EMAIL); // clipboard blocked: show the address so it can be copied by hand
+    }
+    setTimeout(() => setCopyMsg(null), 2000);
+  };
 
   const logout = async () => {
     await fetch(apiUrl('/api/auth/logout'), { method: 'POST', credentials: 'include' });
@@ -130,23 +142,22 @@ export default function Sidebar() {
         })}
       </div>
       <div className="sb__section" style={{ marginTop: 'auto' }}>
-        <a className="sb__item" href={`${ISSUES_URL}?labels=bug`} target="_blank" rel="noreferrer">
+        <a className="sb__item" href={ISSUES_URL} target="_blank" rel="noreferrer">
           <span className="sb__icon">!</span>
           דיווח על באג
         </a>
-        <a
-          className="sb__item"
-          href={`${ISSUES_URL}?labels=enhancement`}
-          target="_blank"
-          rel="noreferrer"
-        >
-          <span className="sb__icon">✦</span>
-          בקשת פיצ׳ר
-        </a>
-        <a className="sb__item" href="mailto:omeraiagent@gmail.com">
-          <span className="sb__icon">@</span>
-          צור קשר
-        </a>
+        {/* Copy instead of mailto: — mailto does nothing when no mail app is set up. */}
+        <div style={{ position: 'relative' }}>
+          {copyMsg && (
+            <span className="sb__bubble" role="status" data-testid="copy-contact-bubble">
+              {copyMsg}
+            </span>
+          )}
+          <button type="button" className="sb__item" data-testid="copy-contact-email" onClick={copyEmail} style={{ width: '100%' }}>
+            <span className="sb__icon">@</span>
+            צור קשר
+          </button>
+        </div>
         {/* Local mode has no login, so nothing to log out of (docs/adr/0002). */}
         {!localMode && (
           <button type="button" className="sb__me" onClick={logout} title="התנתקות">

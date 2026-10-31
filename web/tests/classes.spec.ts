@@ -12,6 +12,14 @@ test.describe('Classes page', () => {
     }
   });
 
+  test('sidebar contact copies the email and shows a bubble above the button', async ({ page, context }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.goto('/classes');
+    await page.getByTestId('copy-contact-email').click();
+    await expect(page.getByTestId('copy-contact-bubble')).toHaveText('המייל הועתק');
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('omeraiagent@gmail.com');
+  });
+
   test('shows empty state when no classes exist', async ({ page }) => {
     await page.route('**/api/classes', (route) => route.fulfill({ json: [] }));
     await page.goto('/classes');
