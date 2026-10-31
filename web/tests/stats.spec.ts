@@ -4,7 +4,7 @@ const API = 'http://localhost:3001';
 
 test.describe('/stats page', () => {
   test('renders all stat tiles without crash (empty data)', async ({ page }) => {
-    await page.route(`${API}/api/classes`, (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/classes', (route) => route.fulfill({ json: [] }));
 
     await page.goto('/stats');
 
@@ -15,12 +15,12 @@ test.describe('/stats page', () => {
   });
 
   test('shows per-class breakdown when classes exist', async ({ page }) => {
-    await page.route(`${API}/api/classes`, (route) =>
+    await page.route('**/api/classes', (route) =>
       route.fulfill({
         json: [{ id: 'cls-1', name: 'מתמטיקה', semester: 'spring', year: 2025 }],
       }),
     );
-    await page.route(`${API}/api/classes/cls-1/lectures`, (route) =>
+    await page.route('**/api/classes/cls-1/lectures', (route) =>
       route.fulfill({
         json: [
           { id: 'lec-1', name: 'הרצאה 1', status: 'summarized' },

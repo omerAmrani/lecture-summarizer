@@ -13,7 +13,7 @@ test.describe('Classes page', () => {
   });
 
   test('shows empty state when no classes exist', async ({ page }) => {
-    await page.route(`${API}/api/classes`, (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/classes', (route) => route.fulfill({ json: [] }));
     await page.goto('/classes');
     await expect(page.getByText('אין קורסים עדיין')).toBeVisible();
   });
@@ -21,7 +21,7 @@ test.describe('Classes page', () => {
   test('creates a class via modal and navigates to its detail page', async ({ page }) => {
     await page.route('**/api/classes/*/detect', (route) => route.fulfill({ json: { newLectures: [] } }));
     await page.goto('/classes');
-    await page.route(`${API}/api/classes/opal-metadata`, (route) =>
+    await page.route('**/api/classes/opal-metadata', (route) =>
       route.fulfill({ status: 502, json: { error: 'opal unreachable' } }),
     );
 
@@ -47,7 +47,7 @@ test.describe('Classes page', () => {
       await detectHeld;
       await route.fulfill({ json: { newLectures: [{ id: 'a' }, { id: 'b' }] } });
     });
-    await page.route(`${API}/api/classes/opal-metadata`, (route) =>
+    await page.route('**/api/classes/opal-metadata', (route) =>
       route.fulfill({ status: 502, json: { error: 'opal unreachable' } }),
     );
     await page.goto('/classes');
