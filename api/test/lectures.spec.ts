@@ -366,6 +366,27 @@ describe('LecturesController', () => {
       releaseJobSlot(USER_A);
     });
 
+    it('exposes the latest progress event on /status and /lectures while the job runs', async () => {
+      const created = await post(`/api/classes/${classId}/lectures`)
+        .send({ name: 'L', url: 'https://example.com' });
+      const id = created.body.id;
+
+      await controller.transcribe(USER_A, classId, id, {}, fakeReq(), fakeRes());
+      const job = (controller as any).lecturesService.activeJobs.get(`${classId}/${id}`);
+      job.bus.emit('event', { type: 'progress', step: 'transcribe', message: 'מוריד... 42%', pct: 42 });
+
+      const statusRes = await get(`/api/classes/${classId}/lectures/${id}/status`);
+      expect(statusRes.body.progress).toEqual({ message: 'מוריד... 42%', pct: 42 });
+      const listRes = await get(`/api/classes/${classId}/lectures`);
+      expect(listRes.body[0].progress).toEqual({ message: 'מוריד... 42%', pct: 42 });
+
+      (controller as any).lecturesService.activeJobs.delete(`${classId}/${id}`);
+      const after = await get(`/api/classes/${classId}/lectures/${id}/status`);
+      expect(after.body.progress).toBeUndefined();
+
+      releaseJobSlot(USER_A);
+    });
+
     it('returns 400 naming GROQ_API_KEY when it is not in .env, without starting a job', async () => {
       const created = await post(`/api/classes/${classId}/lectures`)
         .send({ name: 'L', url: 'https://example.com' });

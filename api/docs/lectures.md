@@ -15,6 +15,8 @@ Lecture lifecycle management: CRUD, status machine, transcription and summarizat
 - `PATCH /api/classes/:classId/lectures/:lectureId` — update `name` / `lectureDate`
 - `GET /api/classes/:classId/lectures/:lectureId/status` — full lecture record
 
+While a transcription is running, both `GET .../lectures` and `GET .../status` add `progress: { message, pct? }`, the latest `progress` SSE event. It's kept in memory on the active job only, never written to the DB or `meta.json`, and disappears when the job ends or the server restarts. Polling clients (another tab, or the same tab after a refresh) use it to show the % without attaching to the SSE stream.
+
 Lectures cannot be deleted individually — all lectures synced/detected for a class remain visible; only deleting the parent class removes them (see `docs/classes.md`).
 
 **Status machine:**

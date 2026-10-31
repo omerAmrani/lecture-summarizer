@@ -3,7 +3,7 @@ import { Request, Response } from 'express';
 import { existsSync, readFileSync } from 'fs';
 import { EventEmitter } from 'events';
 import path from 'path';
-import { LecturesService } from './lectures.service';
+import { ActiveJob, LecturesService } from './lectures.service';
 import { StorageService } from '../storage/storage.service';
 import { DownloadService } from '../download/download.service';
 import { SummarizeService } from '../summarize/summarize.service';
@@ -64,7 +64,7 @@ export class LecturesController {
   @Get(':classId/lectures')
   getLectures(@CurrentUser() userId: string, @Param('classId') classId: string, @Res() res: Response) {
     if (!this.requireOwnedClass(classId, userId, res)) return;
-    res.json(this.storage.getLectures(classId));
+    res.json(this.storage.getLectures(classId).map((l: any) => this.lecturesService.withProgress(classId, l)));
   }
 
   @Post(':classId/lectures')
@@ -93,7 +93,7 @@ export class LecturesController {
     if (!this.requireOwnedClass(classId, userId, res)) return;
     const lecture = this.requireLecture(classId, lectureId, res);
     if (!lecture) return;
-    res.json(lecture);
+    res.json(this.lecturesService.withProgress(classId, lecture));
   }
 
   // ── Transcribe (SSE) ──────────────────────────────────────────────────────────
@@ -130,7 +130,11 @@ export class LecturesController {
     const bus = new EventEmitter();
     bus.setMaxListeners(20);
     const controller = new AbortController();
-    this.lecturesService.activeJobs.set(key, { bus, controllers: new Map([['transcribe', controller]]) });
+    const job: ActiveJob = { bus, controllers: new Map([['transcribe', controller]]) };
+    this.lecturesService.activeJobs.set(key, job);
+    bus.on('event', (ev: any) => {
+      if (ev?.type === 'progress') job.progress = { message: ev.message, pct: ev.pct };
+    });
     this.attachSSEClient(bus, res, req);
 
     this.storage.updateLectureMeta(classId, lectureId, { status: 'transcribing', lastError: null, lastErrorAt: null });

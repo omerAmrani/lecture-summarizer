@@ -4,9 +4,10 @@ const API = 'http://localhost:3001';
 const CLASS_ID = 'e2e-class';
 const LECTURE_ID = 'e2e-lecture';
 
-const STATUS_URL = `${API}/api/classes/${CLASS_ID}/lectures/${LECTURE_ID}/status`;
-const SUMMARIES_URL = `${API}/api/classes/${CLASS_ID}/lectures/${LECTURE_ID}/summaries`;
-const TRANSCRIPT_URL = `${API}/api/classes/${CLASS_ID}/lectures/${LECTURE_ID}/transcript`;
+// Host-agnostic globs: a reused dev server may call 127.0.0.1 instead of localhost.
+const STATUS_URL = `**/api/classes/${CLASS_ID}/lectures/${LECTURE_ID}/status`;
+const SUMMARIES_URL = `**/api/classes/${CLASS_ID}/lectures/${LECTURE_ID}/summaries`;
+const TRANSCRIPT_URL = `**/api/classes/${CLASS_ID}/lectures/${LECTURE_ID}/transcript`;
 
 test.describe('Lecture detail page', () => {
   test.beforeEach(async ({ page }) => {
@@ -21,6 +22,16 @@ test.describe('Lecture detail page', () => {
     await page.route(TRANSCRIPT_URL, (route) => route.fulfill({ status: 404 }));
   });
 
+  test('header status shows the % of a transcription started elsewhere', async ({ page }) => {
+    await page.route(STATUS_URL, (route) =>
+      route.fulfill({
+        json: { id: LECTURE_ID, name: 'E2E Test Lecture', status: 'transcribing', progress: { message: 'x', pct: 42 } },
+      }),
+    );
+    await page.goto(`/classes/${CLASS_ID}/lectures/${LECTURE_ID}`);
+    await expect(page.locator('.lec-h').getByTestId('status-pct')).toHaveText(/42%/);
+  });
+
   test('shows lecture name and no-summary state for a pending lecture', async ({ page }) => {
     await page.goto(`/classes/${CLASS_ID}/lectures/${LECTURE_ID}`);
     await expect(page.locator('h1')).toContainText('E2E Test Lecture');
@@ -29,6 +40,10 @@ test.describe('Lecture detail page', () => {
   });
 
   test('clicking summarize triggers SSE flow and renders the summary', async ({ page }) => {
+    // Pin creds as configured: otherwise the buttons follow whatever .env the reused API has.
+    await page.route('**/api/config/status', (route) =>
+      route.fulfill({ json: { localMode: true, opal: true, groq: true, gemini: true, claude: true } }),
+    );
     await page.route(`**/${LECTURE_ID}/transcribe`, (route) =>
       route.fulfill({
         status: 200,

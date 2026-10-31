@@ -27,6 +27,8 @@ interface Lecture {
   lectureDate?: string | null;
   status: string;
   lastError?: string | null;
+  // Latest progress of a running job, from the API (works for jobs started in another tab).
+  progress?: { message?: string; pct?: number };
 }
 
 const IN_FLIGHT = new Set(['transcribing', 'summarizing']);
@@ -317,7 +319,10 @@ export default function ClassDetailPage() {
             const status = (running && RUNNING_STATUS[l.status]) || l.status;
             const current = IN_FLIGHT.has(status);
             // Only the download step reports a real %; other steps fall back to the indeterminate bar.
-            const pct = running && status === 'transcribing' ? progressPct[l.id] : undefined;
+            // This tab's own SSE is freshest; otherwise use what the API reports for a job started elsewhere.
+            const live = running ? { pct: progressPct[l.id], message: progressMsg[l.id] } : l.progress;
+            const pct = status === 'transcribing' ? live?.pct : undefined;
+            const msg = current ? live?.message : undefined;
             return (
               <div
                 key={l.id}
@@ -339,10 +344,10 @@ export default function ClassDetailPage() {
                     <div className="lec-card__meta">
                       <span>{fmtDateLong(l.lectureDate)}</span>
                       <span style={{ opacity: 0.4 }}>·</span>
-                      <Status s={status} />
-                      {running && progressMsg[l.id] && (
+                      <Status s={status} pct={pct} />
+                      {msg && (
                         <span data-testid="lecture-progress-msg" style={{ color: 'var(--muted)' }}>
-                          {progressMsg[l.id]}
+                          {msg}
                         </span>
                       )}
                       {l.lastError && (

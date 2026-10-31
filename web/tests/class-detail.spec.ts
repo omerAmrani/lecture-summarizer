@@ -19,6 +19,17 @@ test.describe('Class detail page', () => {
     await expect(page.locator('h1')).toContainText('E2E Class Detail');
   });
 
+  test('lecture card shows % and message of a transcription started elsewhere', async ({ page }) => {
+    await page.route(`**/api/classes/${classId}/lectures`, (route) =>
+      route.fulfill({
+        json: [{ id: 'l1', name: 'Running', status: 'transcribing', progress: { message: 'מוריד...', pct: 37 } }],
+      }),
+    );
+    await page.goto(`/classes/${classId}`);
+    await expect(page.getByTestId('status-pct')).toHaveText(/37%/);
+    await expect(page.getByTestId('lecture-progress-msg')).toHaveText('מוריד...');
+  });
+
   test('run pipeline button triggers transcribe + summarize SSE and shows success toast', async ({
     page,
     request,
@@ -28,6 +39,10 @@ test.describe('Class detail page', () => {
     });
     const created = await r.json();
     const lectureId = created.id;
+    // Pin creds as configured: otherwise the buttons follow whatever .env the reused API has.
+    await page.route('**/api/config/status', (route) =>
+      route.fulfill({ json: { localMode: true, opal: true, groq: true, gemini: true, claude: true } }),
+    );
 
     await page.route(`**/${lectureId}/transcribe`, (route) =>
       route.fulfill({

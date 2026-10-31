@@ -23,6 +23,7 @@ interface LectureMeta {
   summarizeModel?: string | null;
   summarizedAt?: string | null;
   currentSummary?: string | null;
+  progress?: { message?: string; pct?: number };
 }
 
 interface LectureListItem {
@@ -128,6 +129,14 @@ export default function LecturePage() {
     loadLecture();
     loadLectures();
   }, [loadLecture, loadLectures]);
+
+  // Keep the header's % fresh while a transcription runs, whichever tab started it.
+  const transcribing = lecture?.status === 'transcribing';
+  useEffect(() => {
+    if (!transcribing) return;
+    const t = setInterval(loadLecture, 5000);
+    return () => clearInterval(t);
+  }, [transcribing, loadLecture]);
 
   useEffect(() => {
     if (!lecture) return;
@@ -387,7 +396,7 @@ export default function LecturePage() {
             {lecture && (
               <>
                 <span className="dot" />
-                <Status s={lecture.status} />
+                <Status s={lecture.status} pct={transcribing ? lecture.progress?.pct : undefined} />
               </>
             )}
           </div>

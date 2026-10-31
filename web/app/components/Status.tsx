@@ -1,10 +1,11 @@
 import { STATUS_LABEL } from '@/lib/status';
 
-export function Status({ s }: { s: string }) {
+export function Status({ s, pct }: { s: string; pct?: number }) {
   return (
     <span className="status" data-s={s}>
       <span className="status__dot" />
       {STATUS_LABEL[s] || s}
+      {pct !== undefined && <span data-testid="status-pct"> {Math.round(pct)}%</span>}
     </span>
   );
 }
