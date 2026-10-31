@@ -78,6 +78,7 @@ export class PipelineController {
           results.push({ classId: cls.id, className: cls.name, newLectures: added });
           send({ type: 'class', classId: cls.id, className: cls.name, newLectures: added });
         } catch (err: any) {
+          console.error(`[pipeline] detect error: ${cls.id}`, err.message);
           results.push({ classId: cls.id, className: cls.name, error: err.message });
           send({ type: 'class', classId: cls.id, className: cls.name, error: err.message, newLectures: [] });
         }

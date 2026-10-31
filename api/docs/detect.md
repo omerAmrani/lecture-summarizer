@@ -22,3 +22,7 @@ Detects new lectures on an OPAL course page using Playwright. Used by the pipeli
 
 - Settings page — "בדוק הרצאות חדשות" sync panel; shows new lectures with queue/skip buttons per class
 - See [settings.md](../../web/docs/settings.md)
+
+## Logging
+
+Detect failures are logged server-side (`[detect] error` / `[detect] course-meta error` from the classes controller, `[pipeline] detect error` from sync), as well as being returned to the client.

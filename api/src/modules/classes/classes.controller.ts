@@ -30,6 +30,7 @@ export class ClassesController {
     try {
       res.json(await this.detect.extractCourseMeta(opalCourseUrl, credentials));
     } catch (e: any) {
+      console.error(`[detect] course-meta error: ${opalCourseUrl}`, e?.message);
       res.status(502).json({ error: e?.message || 'שגיאה בקריאת פרטי הקורס מ-OPAL' });
     }
   }
@@ -48,6 +49,7 @@ export class ClassesController {
       const added = found.map((lec: any) => this.storage.createLecture(classId, lec));
       res.json({ newLectures: added });
     } catch (e: any) {
+      console.error(`[detect] error: ${classId}`, e?.message);
       res.status(502).json({ error: e?.message || 'שגיאה בבדיקת הרצאות חדשות' });
     } finally {
       releaseJobSlot(userId);

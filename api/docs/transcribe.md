@@ -23,3 +23,7 @@ Downloads a lecture video from OPAL and transcribes it to text using Whisper.
 - Class detail page — "סכם" button runs transcribe + summarize in sequence via SSE
 - Lecture detail page — "תמלל מחדש" re-runs full transcription
 - See [lectures.md](../../web/docs/lectures.md)
+
+## Logging
+
+Each step logs `[transcribe] <stage> starting: <classId>/<lectureId>`, where stage is `login`, `download` or `save`. A failure logs `[transcribe] <stage> error|aborted`, so the server log shows which step broke.

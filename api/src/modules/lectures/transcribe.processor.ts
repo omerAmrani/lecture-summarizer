@@ -37,6 +37,9 @@ export class TranscribeProcessor {
     const bus = activeJob?.bus;
     const broadcast = (data: any) => { try { bus?.emit('event', data); } catch (_) {} };
     const controller = activeJob?.controllers.get('transcribe') ?? new AbortController();
+    // Which step we're in, so an error log says where it broke (login vs download/transcribe).
+    let stage = 'login';
+    const startStage = (name: string) => { stage = name; console.log(`[transcribe] ${stage} starting: ${key}`); };
 
     try {
       const lecture = this.storage.getLecture(classId, lectureId);
@@ -44,6 +47,7 @@ export class TranscribeProcessor {
       const transcriptPath = path.join(dir, 'transcript.txt');
       const mp3Path = path.join(dir, 'audio.mp3');
 
+      startStage('login');
       broadcast({ type: 'progress', step: 'login', message: 'מתחבר לאוניברסיטה הפתוחה...' });
       const videoUrl = await this.download.extractVideoUrl(
         lecture!.url,
@@ -52,6 +56,7 @@ export class TranscribeProcessor {
         controller.signal,
       );
 
+      startStage('download');
       broadcast({ type: 'progress', step: 'download', message: 'מוריד ומתמלל...' });
       const transcript = await this.download.downloadAndTranscribe(
         randomUUID(),
@@ -64,6 +69,7 @@ export class TranscribeProcessor {
         controller.signal,
       );
 
+      startStage('save');
       writeFileSync(transcriptPath, transcript);
       if (existsSync(mp3Path)) {
         unlinkSync(mp3Path);
@@ -72,10 +78,11 @@ export class TranscribeProcessor {
 
       this.storage.updateLectureMeta(classId, lectureId, { status: 'transcribed', whisperBackend: 'groq-whisper' });
       broadcast({ type: 'done', status: 'transcribed' });
+      console.log(`[transcribe] done: ${key}`);
     } catch (err: any) {
       const aborted = controller.signal.aborted;
-      if (aborted) console.log(`[transcribe.processor] aborted: ${key}`);
-      else console.error(`[transcribe.processor] error: ${key}`, err.message);
+      if (aborted) console.log(`[transcribe] ${stage} aborted: ${key}`);
+      else console.error(`[transcribe] ${stage} error: ${key}`, err.message);
       this.storage.updateLectureMeta(classId, lectureId, {
         status: 'pending',
         lastError: aborted ? 'בוטל על ידי המשתמש' : err.message,
