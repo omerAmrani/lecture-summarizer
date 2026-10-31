@@ -1,48 +1,39 @@
-# Toolbox Monorepo
+# Lecture Summarizer
 
-Personal platform containing productivity and utility apps.
+Turns Open University (OPAL) lecture recordings into transcripts and summaries.
 
 ## Structure
 
-- apps/open-uni/api — NestJS API, lecture processor (Groq/Gemini/Codex/Ollama), SQLite
-- apps/open-uni/web — Next.js 15 web UI for the above
-- apps/open-uni/tray — macOS tray app (Swift)
-- packages/ui — shared React components (stub, promote when a second app exists)
-- packages/config — shared ESLint configs (`eslint/base|next|react-internal`) and tsconfig presets (`tsconfig/base|nextjs|react-library`)
+- api — NestJS API, lecture processor (Groq/Gemini/Codex/Ollama), SQLite
+- web — Next.js 15 web UI for the above
+- tray — macOS tray app (Swift)
 
 ## Package Manager
 
-pnpm with workspaces. Always run installs from root.
+pnpm with workspaces (`api`, `web`). Always run installs from root.
 
 ## Commands
 
-Run a specific app:
-turbo run dev --filter=@toolbox/<app-name>
-turbo run build --filter=@toolbox/<app-name>
+Run both apps: `pnpm dev`
 
-Add a dep to a specific app:
-pnpm add <package> --filter=@toolbox/<app-name>
+Run or build one app:
+turbo run dev --filter=@lecture-summarizer/<api|web>
+turbo run build --filter=@lecture-summarizer/<api|web>
+
+Add a dep to one app:
+pnpm add <package> --filter=@lecture-summarizer/<api|web>
 
 Add a dep to root (dev tooling only):
 pnpm add -D <package> -w
 
-## Shared Packages
-
-All packages and apps are namespaced under @toolbox/
-Import as: import { ... } from "@toolbox/ai"
-
 ## Before Implementing UI or Backend Changes
 
-- Always check `packages/` for relevant existing code before implementing any UI or backend change/feature
-- For UI changes: prefer components from `packages/ui` over writing new ones
-- For Next.js apps: prefer modules from `node_modules` lib utilities and Next.js built-ins before adding custom implementations
+- For Next.js: prefer modules from `node_modules` lib utilities and Next.js built-ins before adding custom implementations
 
 ## Conventions
 
 - Each app has its own .env.local, never commit secrets
-- Shared logic goes into /packages only when used by 2+ apps
-- Do not create a package preemptively
-- When you notice code that could be generic/reusable, flag it and ask the user if it should be moved to `packages/`
+
 
 ## Docs
 
@@ -52,7 +43,7 @@ Import as: import { ... } from "@toolbox/ai"
 
 ## Testing
 
-- Each feature has one spec file named after its module/route (e.g. `test/lectures.spec.ts`, `tests/settings.spec.ts`) — after a change, run only that file: `pnpm --filter=@toolbox/<app-name> test <feature>.spec.ts`
+- Each feature has one spec file named after its module/route (e.g. `test/lectures.spec.ts`, `tests/settings.spec.ts`) — after a change, run only that file: `pnpm --filter=@lecture-summarizer/<api|web> test <feature>.spec.ts`
 
 ## Before Writing Any Code
 

@@ -24,7 +24,7 @@ jobs:
         run: pnpm install
 
       - name: Run API integration tests
-        run: pnpm --filter=@toolbox/open-uni-recorder-api test
+        run: pnpm --filter=@lecture-summarizer/api test
 
   e2e:
     runs-on: ubuntu-latest
@@ -43,10 +43,10 @@ jobs:
         run: pnpm install
 
       - name: Build API
-        run: pnpm --filter=@toolbox/open-uni-recorder-api build
+        run: pnpm --filter=@lecture-summarizer/api build
 
       - name: Install Playwright browsers
-        run: pnpm --filter=@toolbox/open-uni-recorder-web exec playwright install chromium --with-deps
+        run: pnpm --filter=@lecture-summarizer/web exec playwright install chromium --with-deps
 
       - name: Run E2E tests
-        run: pnpm --filter=@toolbox/open-uni-recorder-web test:e2e
+        run: pnpm --filter=@lecture-summarizer/web test:e2e

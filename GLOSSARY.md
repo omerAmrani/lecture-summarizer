@@ -1,6 +1,6 @@
-# Toolbox
+# Lecture Summarizer
 
-Personal platform of productivity apps. Currently one domain: open-uni, which turns Open University (OPAL) lecture recordings into transcripts and summaries.
+open-uni turns Open University (OPAL) lecture recordings into transcripts and summaries.
 
 ## open-uni
 
