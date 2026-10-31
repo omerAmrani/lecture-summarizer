@@ -36,7 +36,7 @@ There is no `skipped` status — every lecture created (manually or via sync/cro
 
 **Summarize (SSE):** `POST .../summarize`
 - reads `transcript.txt` → summarizes via backend → saves versioned summary → sets as current
-- Body: optional `{ backend: 'gemini' | 'claude' }`. Uses the first backend with a key in `.env`: requested → `SUMMARIZE_BACKEND` → gemini → claude. `400` if neither `GEMINI_API_KEY` nor `ANTHROPIC_API_KEY` is set
+- Body: optional `{ backend: 'gemini' | 'claude' | 'openai', model?: string }`. A requested backend without a key is a `400` (no silent fallback). With none requested it uses the saved default, then `SUMMARIZE_BACKEND`, then any configured provider. See [summarize.md](summarize.md) for model resolution
 
 **SSE event shapes:**
 - `{ type: 'progress', step, message, pct? }` — `pct` (0–99) is set only on ffmpeg download progress during transcribe

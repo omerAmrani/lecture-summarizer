@@ -39,4 +39,43 @@ test.describe('Settings page', () => {
 
     await expect(claudeCard.getByText('Invalid API key')).toBeVisible({ timeout: 5_000 });
   });
+
+  test('default summarize picker: unconfigured providers disabled, recommended tagged, saves choice', async ({ page }) => {
+    await page.route('**/api/config/status', (route) =>
+      route.fulfill({ json: { localMode: true, opal: true, groq: true, gemini: true, claude: true, openai: false } }),
+    );
+    await page.route('**/api/settings/summarize', (route) =>
+      route.request().method() === 'PUT'
+        ? route.fulfill({ json: { default: route.request().postDataJSON() } })
+        : route.fulfill({ json: { default: { backend: 'claude', model: null } } }),
+    );
+    await page.route('**/api/models/claude', (route) =>
+      route.fulfill({
+        json: {
+          models: [
+            { id: 'claude-haiku-x', name: 'Claude Haiku X', recommended: true },
+            { id: 'claude-opus-x', name: 'Claude Opus X', recommended: false },
+          ],
+        },
+      }),
+    );
+
+    await page.goto('/settings');
+    const box = page.getByTestId('summarize-default');
+    // No saved model: the top (recommended) one is preselected.
+    await expect(box.getByTestId('model-select')).toHaveText('Claude Haiku X');
+
+    await box.getByTestId('provider-select').click();
+    await expect(page.getByRole('option', { name: /OpenAI/ })).toHaveAttribute('data-disabled', '');
+    await page.keyboard.press('Escape');
+
+    await box.getByTestId('model-select').click();
+    await expect(page.getByRole('option', { name: /Claude Haiku X/ })).toContainText('מומלץ');
+    await page.getByRole('option', { name: /Claude Opus X/ }).click();
+
+    const put = page.waitForRequest((r) => r.url().endsWith('/api/settings/summarize') && r.method() === 'PUT');
+    await page.getByTestId('save-summarize-default').click();
+    expect((await put).postDataJSON()).toEqual({ backend: 'claude', model: 'claude-opus-x' });
+    await expect(box.getByText('נשמר')).toBeVisible();
+  });
 });

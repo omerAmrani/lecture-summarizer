@@ -226,6 +226,15 @@ input, select, textarea { font: inherit; color: inherit; }
 .select-pop__item[data-highlighted] {
   background: var(--surface-2);
 }
+.select-pop__item[data-disabled] { color: var(--muted); cursor: not-allowed; }
+.select-pop__tag {
+  margin-inline-start: 8px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font: 500 0.7rem/1.4 var(--font-ui);
+}
 
 /* ── App shell ────────────────────────────────────────────────────────── */
 .app {
@@ -317,6 +326,18 @@ button.sb__item { border: none; background: none; }
   margin-inline-start: auto;
   font: 500 0.78rem/1 var(--font-mono);
   color: var(--muted);
+}
+.sb__bubble {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  inset-inline-start: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--bg);
+  font: 500 0.75rem/1.3 var(--font-ui);
+  white-space: nowrap;
+  pointer-events: none;
 }
 .sb__divider { height: 1px; background: var(--line); margin: 4px 12px; }
 

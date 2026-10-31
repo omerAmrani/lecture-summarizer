@@ -60,7 +60,7 @@ describe('HealthController', () => {
       claude.restore();
 
       expect(res.status).toBe(200);
-      expect(res.body).toEqual({ localMode: false, opal: true, groq: true, gemini: true, claude: false });
+      expect(res.body).toEqual({ localMode: false, opal: true, groq: true, gemini: true, claude: false, openai: false });
     });
   });
 

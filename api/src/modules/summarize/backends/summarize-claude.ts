@@ -1,13 +1,14 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { buildPrompt, TRUNCATION_WARNING, SYSTEM_PROMPT } from './prompt';
-import { MERGE_MAX_TOKENS, CLAUDE_MODEL } from '../../../config';
+import { MERGE_MAX_TOKENS } from '../../../config';
+import type { ModelOption } from '../summarize.service';
 
 function getClient(apiKey: string): Anthropic {
   if (!apiKey) throw new Error('Anthropic API key required for summarization');
   return new Anthropic({ apiKey });
 }
 
-export async function mergeSummaries(chunks: string[], apiKey: string, onProgress = (_: string) => {}, onToken: ((t: string) => void) | null = null): Promise<string> {
+export async function mergeSummaries(chunks: string[], apiKey: string, model: string, onProgress = (_: string) => {}, onToken: ((t: string) => void) | null = null): Promise<string> {
   const fullTranscript = chunks.join('\n\n');
   onProgress('מסכם עם Claude...');
 
@@ -15,7 +16,7 @@ export async function mergeSummaries(chunks: string[], apiKey: string, onProgres
 
   if (onToken) {
     const stream = client.messages.stream({
-      model: CLAUDE_MODEL!,
+      model,
       max_tokens: MERGE_MAX_TOKENS,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: buildPrompt(fullTranscript) }],
@@ -37,10 +38,16 @@ export async function mergeSummaries(chunks: string[], apiKey: string, onProgres
   }
 
   const response = await client.messages.create({
-    model: CLAUDE_MODEL!,
+    model,
     max_tokens: MERGE_MAX_TOKENS,
     system: SYSTEM_PROMPT,
     messages: [{ role: 'user', content: buildPrompt(fullTranscript) }],
   });
   return (response.content[0] as any).text;
+}
+
+export async function listModels(apiKey: string): Promise<ModelOption[]> {
+  const models: ModelOption[] = [];
+  for await (const m of getClient(apiKey).models.list()) models.push({ id: m.id, name: m.display_name });
+  return models;
 }

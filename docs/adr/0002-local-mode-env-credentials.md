@@ -1,6 +1,6 @@
 # Local mode: no login, credentials from .env
 
-Remote hosting is paused and open-uni is handed to users to clone and run on their own machine, so it must work with no third-party setup beyond API keys. When `GOOGLE_CLIENT_ID` is unset the app runs in **local mode**: every request is treated as one fixed local user (no login page), the API binds to `127.0.0.1` only, and OPAL + AI credentials are read from `api/.env` instead of being sent per-request from the browser. The browser-side encrypted credential store was deleted rather than kept dormant.
+Remote hosting is paused and open-uni is handed to users to clone and run on their own machine, so it must work with no third-party setup beyond API keys. When `GOOGLE_CLIENT_ID` is unset the app runs in **local mode**: every request is treated as one fixed local user (no login page), the API binds to `127.0.0.1` only, and OPAL + AI credentials are read from the repo-root `.env` instead of being sent per-request from the browser. The browser-side encrypted credential store was deleted rather than kept dormant.
 
 ## Consequences
 

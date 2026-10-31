@@ -8,7 +8,7 @@
     "start": "node dist/src/main.js",
     "start:prod": "node dist/src/main.js",
     "postinstall": "playwright install chromium",
-    "docker": "docker build -f Dockerfile -t lecture-summarizer-api .. && docker run --rm -p 3001:3001 --env-file .env lecture-summarizer-api",
+    "docker": "docker build -f Dockerfile -t lecture-summarizer-api .. && docker run --rm -p 3001:3001 --env-file ../.env lecture-summarizer-api",
     "test": "NODE_ENV=test jest --runInBand",
     "test:watch": "NODE_ENV=test jest --runInBand --watch",
     "test:coverage": "NODE_ENV=test jest --runInBand --coverage"
@@ -46,6 +46,7 @@
     "express": "^4.19.2",
     "google-auth-library": "^11.0.2",
     "groq-sdk": "^1.1.2",
+    "openai": "^7.35.0",
     "playwright": "^1.59.1",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1"

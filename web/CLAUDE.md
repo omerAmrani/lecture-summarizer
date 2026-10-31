@@ -27,7 +27,7 @@ Transcribe and summarize endpoints stream `text/event-stream`. Event shapes:
 
 ## Components
 
-Local to `app/components/`: `NavBar`, `PageHeader`, `Modal`, `Toast`, `StatusBadge`, `BackendSelect`, `EmptyState`. Status label/color helpers live in `lib/status.ts`.
+Local to `app/components/`: `NavBar`, `PageHeader`, `Modal`, `Toast`, `StatusBadge`, `SummarizePicker`, `EmptyState`. Status label/color helpers live in `lib/status.ts`.
 
 ## Before implementing a feature
 

@@ -6,11 +6,11 @@ import {
   saveSummaryVersion, getSummaryVersions, getSummaryContent,
   getCurrentSummaryContent, deleteSummaryVersion,
   reloadFromDisk,
-  getActiveSemester, setActiveSemester,
+  getActiveSemester, setActiveSemester, getSummarizeDefault, setSummarizeDefault,
   getUserByEmail, createUser, getOrCreateUser,
   CLASSES_DIR,
 } from '../../storage';
-export type { ActiveSemester, User } from '../../storage';
+export type { ActiveSemester, SummarizeDefault, User } from '../../storage';
 
 @Injectable()
 export class StorageService {
@@ -33,6 +33,8 @@ export class StorageService {
   readonly reloadFromDisk = reloadFromDisk;
   readonly getActiveSemester = getActiveSemester;
   readonly setActiveSemester = setActiveSemester;
+  readonly getSummarizeDefault = getSummarizeDefault;
+  readonly setSummarizeDefault = setSummarizeDefault;
   readonly getUserByEmail = getUserByEmail;
   readonly createUser = createUser;
   readonly getOrCreateUser = getOrCreateUser;

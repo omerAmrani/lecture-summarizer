@@ -27,6 +27,20 @@ export function setActiveSemester(active: ActiveSemester): void {
   setSetting('activeSemester', JSON.stringify(active));
 }
 
+// Default summarize provider + model, picked in Settings. Like activeSemester it's
+// app config, not lecture data, so it lives in app_settings only (no meta.json mirror).
+export interface SummarizeDefault { backend: string; model: string | null }
+
+export function getSummarizeDefault(): SummarizeDefault | null {
+  const raw = getSetting('summarizeDefault');
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
+export function setSummarizeDefault(value: SummarizeDefault): void {
+  setSetting('summarizeDefault', JSON.stringify(value));
+}
+
 function makeId(name: string): string {
   const clean = name.toLowerCase()
     .replace(/[^\w]/g, '-')

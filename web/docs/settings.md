@@ -25,12 +25,17 @@ Single-page control panel at `/settings` for managing app configuration, the pro
 - There's no separate processing-queue panel — a lecture created here processes the same way as any other `pending` lecture (per-lecture action on the class page)
 - No scheduled detection — "בדוק עכשיו" is manual; the only automatic Detect is the one-off run right after creating a course (see `classes.md`)
 
-**Credentials** (read-only — credentials live in `api/.env`, see docs/adr/0002):
-- Checklist of OPAL / Groq / Gemini / Claude keys from `GET /api/config/status` (✅/❌, never the values), plus which keys each action needs
-- Groq / Gemini / Claude provider names link to the provider's API-keys page (new tab); hovering shows a `title` hint with the price tier and which `.env` var to paste into
+**Credentials** (read-only — credentials live in the repo-root `.env`, see docs/adr/0002):
+- Checklist of OPAL / Groq / Gemini / Claude / OpenAI keys from `GET /api/config/status` (✅/❌, never the values), plus which keys each action needs
+- Groq / Gemini / Claude / OpenAI provider names link to the provider's API-keys page (new tab); hovering shows a `title` hint with the price tier and which `.env` var to paste into
 - No credential form — edit `.env` and restart the API. Transcribe/summarize buttons on the class and lecture pages are disabled with a hint when their keys are missing (`lib/configStatus.ts`)
 
+**Default summarize model** (`SummarizePicker`):
+- Provider + model picker, saved with "שמור ברירת מחדל" via `PUT /api/settings/summarize`. The lecture page starts on this choice but can pick another per run.
+- Providers without a key in `.env` are disabled and tagged "אין מפתח"
+- Models come live from `GET /api/models/:backend`. Recommended (cheap, long-context) ones come first, tagged "מומלץ", and the top one is preselected when no model is saved.
+
 **AI model health:**
-- Cards for Gemini and Claude
-- Per-card test button + "בדוק את כולם" — `POST /health/gemini` or `POST /health/claude`, which test the key from the API's `.env` (see `api/docs/health.md`)
+- Cards for Gemini, Claude and OpenAI
+- Per-card test button + "בדוק את כולם" — `POST /health/<gemini|claude|openai>`, which test the key from the API's `.env` (see `api/docs/health.md`)
 - Shows status dot, latency, and a sample response excerpt

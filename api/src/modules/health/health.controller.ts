@@ -2,7 +2,8 @@ import { Controller, Get, Post, Res, HttpCode } from '@nestjs/common';
 import { Response } from 'express';
 import Anthropic from '@anthropic-ai/sdk';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { GEMINI_MODEL, CLAUDE_MODEL, GEMINI_API_KEY, ANTHROPIC_API_KEY } from '../../config';
+import OpenAI from 'openai';
+import { GEMINI_MODEL, CLAUDE_MODEL, GEMINI_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY } from '../../config';
 
 interface HealthCheckResult {
   ok: boolean;
@@ -20,7 +21,7 @@ export class HealthController {
     apiKey: string | undefined,
     run: (apiKey: string) => Promise<{ response: string }>,
   ): Promise<HealthCheckResult> {
-    if (!apiKey) return { ok: false, configured: false, error: 'API key not set in api/.env' };
+    if (!apiKey) return { ok: false, configured: false, error: 'API key not set in .env' };
     try {
       const t0 = Date.now();
       const { response } = await run(apiKey);
@@ -56,6 +57,16 @@ export class HealthController {
         messages: [{ role: 'user', content: 'Reply with just the word "ok".' }],
       });
       return { response: (response.content[0] as any).text.trim() };
+    }));
+  }
+
+  // No fixed OpenAI model to ping, so this checks the key by listing models (free, no tokens).
+  @Post('openai')
+  @HttpCode(200)
+  async checkOpenAI(@Res() res: Response) {
+    res.json(await this.check(OPENAI_API_KEY, async (key) => {
+      const page = await new OpenAI({ apiKey: key }).models.list();
+      return { response: `${page.data.length} models` };
     }));
   }
 }

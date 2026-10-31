@@ -7,8 +7,8 @@ import { apiFetch, deleteResource } from '@/lib/api';
 import { streamSSE } from '@/lib/sse';
 import { useConfigStatus, missingFor } from '@/lib/configStatus';
 import { useToast } from '@/app/components/Toast';
-import { BackendSelect } from '@/app/components/BackendSelect';
-import type { Backend } from '@/app/components/BackendSelect';
+import { SummarizePicker, useSummarizeDefault } from '@/app/components/SummarizePicker';
+import type { SummarizeChoice } from '@/app/components/SummarizePicker';
 import { Status, fmtDateLong } from '@/app/components/Status';
 import { Button } from '@/app/components/Button';
 import { Select } from '@/app/components/Select';
@@ -66,8 +66,11 @@ export default function LecturePage() {
   const [viewedSummaryId, setViewedSummaryId] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'summary' | 'transcript'>('summary');
   const [transcript, setTranscript] = useState<string | null>(null);
-  const [backend, setBackend] = useState<Backend>('claude');
   const configStatus = useConfigStatus();
+  // Starts on the default from Settings; a change here applies to this run only.
+  const savedChoice = useSummarizeDefault(configStatus);
+  const [pickedChoice, setPickedChoice] = useState<SummarizeChoice | null>(null);
+  const choice = pickedChoice ?? savedChoice;
   const transcribeHint = missingFor(configStatus, 'transcribe');
   const summarizeHint = missingFor(configStatus, 'summarize');
   // runSummarize transcribes first when there's no transcript yet.
@@ -236,7 +239,7 @@ export default function LecturePage() {
 
       await streamSSE(
         `/api/classes/${classId}/lectures/${lectureId}/summarize`,
-        { backend },
+        choice ? { backend: choice.backend, model: choice.model } : {},
         (ev) => {
           if (ev.type === 'progress') {
             setActionLabel(String(ev.message));
@@ -429,7 +432,7 @@ export default function LecturePage() {
                 value={viewedSummaryId ?? history.currentSummary ?? ''}
                 onChange={(v) => v && viewSummary(v)}
                 options={history.versions.map((v, i) => {
-                  const label = v.backend === 'claude' ? 'Claude' : v.backend === 'gemini' ? 'Gemini' : 'Other';
+                  const label = ({ claude: 'Claude', gemini: 'Gemini', openai: 'OpenAI' } as Record<string, string>)[v.backend] ?? 'Other';
                   const num = history.versions.length - i;
                   return { value: v.id, label: `${label} #${num}` };
                 })}
@@ -522,7 +525,7 @@ export default function LecturePage() {
               >
                 מודל AI
               </label>
-              <BackendSelect value={backend} onChange={setBackend} full />
+              {choice && <SummarizePicker value={choice} onChange={setPickedChoice} status={configStatus} />}
               <Button block onClick={runSummarize} disabled={jobActive || !!summarizeNowHint} title={summarizeNowHint ?? undefined}>
                 {actionLabel !== SUMMARIZE_IDLE && <span className="spinner" />}
                 {actionLabel}

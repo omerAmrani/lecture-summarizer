@@ -7,7 +7,6 @@ import { ActiveJob, LecturesService } from './lectures.service';
 import { StorageService } from '../storage/storage.service';
 import { DownloadService } from '../download/download.service';
 import { SummarizeService } from '../summarize/summarize.service';
-import { GEMINI_MODEL, CLAUDE_MODEL } from '../../config';
 import { CurrentUser } from '../../common/current-user.decorator';
 import { JwtAuthGuard } from '../../common/jwt-auth.guard';
 import { tryAcquireJobSlot, releaseJobSlot } from '../../job-guard';
@@ -168,9 +167,12 @@ export class LecturesController {
       return res.status(400).json({ error: 'No transcript found. Run transcription first.' });
     }
 
-    const summarizeBackend = getSummarizeBackend(body?.backend);
-    if (!summarizeBackend) return res.status(400).json({ error: MISSING_CREDENTIALS.summarize });
-    const { backend: usedBackend, apiKey } = summarizeBackend;
+    const resolved = getSummarizeBackend(
+      { backend: body?.backend, model: body?.model },
+      this.storage.getSummarizeDefault(),
+    );
+    if ('error' in resolved) return res.status(400).json({ error: resolved.error });
+    const { backend: usedBackend, apiKey, model: usedModel } = resolved;
 
     const send = this.startSSE(res);
     const key = `${classId}/${lectureId}`;
@@ -181,7 +183,7 @@ export class LecturesController {
     this.lecturesService.activeJobs.set(key, job);
 
     try {
-      console.log(`[summarize] starting: ${classId}/${lectureId} backend=${usedBackend}`);
+      console.log(`[summarize] starting: ${classId}/${lectureId} backend=${usedBackend} model=${usedModel}`);
       this.storage.updateLectureMeta(classId, lectureId, { status: 'summarizing', lastError: null, lastErrorAt: null });
       const { mergeSummaries } = await this.summarizeService.getSummarizer(usedBackend);
       const transcript = readFileSync(transcriptPath, 'utf8');
@@ -191,14 +193,13 @@ export class LecturesController {
         mergeSummaries(
           [transcript],
           apiKey,
+          usedModel,
           (msg: string) => send({ type: 'progress', step: 'summarize', message: msg }),
           (token: string) => send({ type: 'token', token }),
         ),
         controller.signal,
       );
 
-      const modelMap: Record<string, string | undefined> = { gemini: GEMINI_MODEL, claude: CLAUDE_MODEL };
-      const usedModel = modelMap[usedBackend];
       this.storage.saveSummaryVersion(classId, lectureId, summary, usedBackend, usedModel);
       this.storage.updateLectureMeta(classId, lectureId, {
         status: 'summarized',

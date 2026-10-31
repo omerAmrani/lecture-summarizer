@@ -59,8 +59,19 @@ test.describe('Lecture detail page', () => {
       }),
     );
 
+    await page.route('**/api/settings/summarize', (route) =>
+      route.fulfill({ json: { default: { backend: 'gemini', model: 'gemini-saved' } } }),
+    );
+    await page.route('**/api/models/gemini', (route) =>
+      route.fulfill({ json: { models: [{ id: 'gemini-saved', name: 'Gemini Saved', recommended: true }] } }),
+    );
+
     await page.goto(`/classes/${CLASS_ID}/lectures/${LECTURE_ID}`);
+    // The picker starts on the default saved in Settings.
+    await expect(page.getByTestId('model-select')).toHaveText('Gemini Saved');
+    const summarizeReq = page.waitForRequest((r) => r.url().endsWith('/summarize'));
     await page.getByTestId('summarize-btn').click();
+    expect((await summarizeReq).postDataJSON()).toEqual({ backend: 'gemini', model: 'gemini-saved' });
 
     await expect(page.getByTestId('summary-body')).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText('הסיכום הושלם!')).toBeVisible();

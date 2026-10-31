@@ -321,6 +321,43 @@ describe('LecturesController', () => {
       expect(statusRes.body.lastError).toBe('Summarizer failed');
     });
 
+    it('passes the saved default model to the summarizer', async () => {
+      const created = await post(`/api/classes/${classId}/lectures`).send({ name: 'L', url: 'https://example.com' });
+      const id = created.body.id;
+      const dir = storage.lectureDirPath(classId, id);
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(path.join(dir, 'transcript.txt'), 'Test transcript');
+      storage.setSummarizeDefault({ backend: 'claude', model: 'claude-saved' });
+      const merge = jest.fn().mockResolvedValue('S');
+      mockSummarize.getSummarizer.mockResolvedValueOnce({ mergeSummaries: merge });
+
+      await post(`/api/classes/${classId}/lectures/${id}/summarize`)
+        .buffer(true)
+        .parse((response, callback) => {
+          let data = '';
+          response.on('data', (chunk: Buffer) => { data += chunk.toString(); });
+          response.on('end', () => callback(null, data));
+        });
+
+      expect(mockSummarize.getSummarizer).toHaveBeenCalledWith('claude');
+      expect(merge.mock.calls[0][2]).toBe('claude-saved');
+      const statusRes = await get(`/api/classes/${classId}/lectures/${id}/status`);
+      expect(statusRes.body.summarizeModel).toBe('claude-saved');
+    });
+
+    it('returns 400 instead of falling back when the picked provider has no key', async () => {
+      const created = await post(`/api/classes/${classId}/lectures`).send({ name: 'L', url: 'https://example.com' });
+      const id = created.body.id;
+      const dir = storage.lectureDirPath(classId, id);
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(path.join(dir, 'transcript.txt'), 'Test transcript');
+
+      const res = await post(`/api/classes/${classId}/lectures/${id}/summarize`).send({ backend: 'openai', model: 'gpt-x' });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('OPENAI_API_KEY');
+      expect(mockSummarize.getSummarizer).not.toHaveBeenCalled();
+    });
+
     it('returns 400 naming both keys when neither Gemini nor Anthropic key is in .env', async () => {
       const created = await post(`/api/classes/${classId}/lectures`)
         .send({ name: 'L', url: 'https://example.com' });
@@ -338,6 +375,7 @@ describe('LecturesController', () => {
       expect(res.status).toBe(400);
       expect(res.body.error).toContain('GEMINI_API_KEY');
       expect(res.body.error).toContain('ANTHROPIC_API_KEY');
+      expect(res.body.error).toContain('OPENAI_API_KEY');
       expect(mockSummarize.getSummarizer).not.toHaveBeenCalled();
     });
   });

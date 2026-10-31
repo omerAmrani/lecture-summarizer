@@ -11,9 +11,10 @@ export interface ConfigStatus {
   groq: boolean;
   gemini: boolean;
   claude: boolean;
+  openai: boolean;
 }
 
-const ENV_FILE = 'api/.env';
+const ENV_FILE = '.env';
 
 // null = everything this action needs is set; otherwise a hint for the user.
 export function missingFor(status: ConfigStatus | null, action: 'transcribe' | 'summarize'): string | null {
@@ -22,8 +23,8 @@ export function missingFor(status: ConfigStatus | null, action: 'transcribe' | '
   if (action === 'transcribe') {
     if (!status.opal) missing.push('OPENU_USERNAME / OPENU_PASSWORD / OPENU_ID');
     if (!status.groq) missing.push('GROQ_API_KEY');
-  } else if (!status.gemini && !status.claude) {
-    missing.push('GEMINI_API_KEY או ANTHROPIC_API_KEY');
+  } else if (!status.gemini && !status.claude && !status.openai) {
+    missing.push('GEMINI_API_KEY, ANTHROPIC_API_KEY או OPENAI_API_KEY');
   }
   return missing.length ? `חסר ב-${ENV_FILE}: ${missing.join(', ')}` : null;
 }

@@ -9,26 +9,27 @@ You need:
 - Node.js 20+ and pnpm (`npm i -g pnpm`)
 - ffmpeg (`brew install ffmpeg`)
 - Your Open University login (username, password, ID number)
-- A Groq API key (free) for transcription → [get one](https://console.groq.com/keys "Create a key, then paste it into GROQ_API_KEY in api/.env")
+- A Groq API key (free) for transcription → [get one](https://console.groq.com/keys "Create a key, then paste it into GROQ_API_KEY in .env")
 - A Gemini or Anthropic API key for summaries (optional if you only want transcripts)
-  - Gemini (has a free tier) → [get one](https://aistudio.google.com/app/apikey "Sign in with Google, create a key, then paste it into GEMINI_API_KEY in api/.env")
-  - Anthropic (paid) → [get one](https://platform.claude.com/settings/keys "Create a key (needs billing set up), then paste it into ANTHROPIC_API_KEY in api/.env")
+  - Gemini (has a free tier) → [get one](https://aistudio.google.com/app/apikey "Sign in with Google, create a key, then paste it into GEMINI_API_KEY in .env")
+  - Anthropic (paid) → [get one](https://platform.claude.com/settings/keys "Create a key (needs billing set up), then paste it into ANTHROPIC_API_KEY in .env")
+  - OpenAI (paid) → [get one](https://platform.openai.com/api-keys "Create a key (needs billing set up), then paste it into OPENAI_API_KEY in .env")
 
 From the repo root:
 
 ```bash
 pnpm install                # also installs Playwright's Chromium
-cp api/.env.example api/.env
+cp .env.example .env
 ```
 
-Edit `api/.env`:
+Edit `.env` (repo root):
 
 ```bash
 OPENU_USERNAME=...
 OPENU_PASSWORD=...
 OPENU_ID=...
 GROQ_API_KEY=...
-GEMINI_API_KEY=...          # and/or ANTHROPIC_API_KEY
+GEMINI_API_KEY=...          # and/or ANTHROPIC_API_KEY / OPENAI_API_KEY
 ```
 
 Start the app:

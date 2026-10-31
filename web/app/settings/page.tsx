@@ -8,6 +8,8 @@ import { Select } from '@/app/components/Select';
 import { SEMESTER_HE } from '@/lib/status';
 import {SEMESTER_ORDER, getSelectedSemester, setSelectedSemester} from '@/lib/selectedSemester';
 import { useConfigStatus, ConfigStatus } from '@/lib/configStatus';
+import { SummarizePicker, useSummarizeDefault } from '@/app/components/SummarizePicker';
+import type { SummarizeChoice } from '@/app/components/SummarizePicker';
 
 interface DataDirInfo {
   current: string;
@@ -39,7 +41,7 @@ interface SyncSection {
   newLectures: NewLecture[];
 }
 
-type ModelKey = 'gemini' | 'claude';
+type ModelKey = 'gemini' | 'claude' | 'openai';
 type ModelStatus = 'idle' | 'testing' | 'ok' | 'error' | 'warning';
 
 interface ModelState {
@@ -50,8 +52,9 @@ interface ModelState {
 }
 
 const MODELS: { key: ModelKey; emoji: string; name: string; sub: string; role: string }[] = [
-  { key: 'gemini', emoji: 'G', name: 'Gemini', sub: 'Google · gemini-2.0-flash', role: 'סיכומים גיבוי' },
-  { key: 'claude', emoji: 'C', name: 'Claude', sub: 'Anthropic · claude-haiku-4-5-20251001', role: 'סיכומים' },
+  { key: 'gemini', emoji: 'G', name: 'Gemini', sub: 'Google', role: 'סיכומים' },
+  { key: 'claude', emoji: 'C', name: 'Claude', sub: 'Anthropic', role: 'סיכומים' },
+  { key: 'openai', emoji: 'O', name: 'OpenAI', sub: 'ChatGPT', role: 'סיכומים' },
 ];
 
 // Read-only: credentials live in the API's .env (docs/adr/0002).
@@ -68,6 +71,10 @@ const ENV_KEYS: { label: string; keys: string; isSet: (s: ConfigStatus) => boole
   {
     label: 'Claude (סיכום)', keys: 'ANTHROPIC_API_KEY', isSet: (s) => s.claude,
     getKey: { url: 'https://platform.claude.com/settings/keys', hint: 'בתשלום · צרו מפתח והדביקו ב-ANTHROPIC_API_KEY' },
+  },
+  {
+    label: 'OpenAI (סיכום)', keys: 'OPENAI_API_KEY', isSet: (s) => s.openai,
+    getKey: { url: 'https://platform.openai.com/api-keys', hint: 'בתשלום · צרו מפתח והדביקו ב-OPENAI_API_KEY' },
   },
 ];
 
@@ -89,9 +96,30 @@ export default function SettingsPage() {
   const [models, setModels] = useState<Record<ModelKey, ModelState>>({
     gemini: { status: 'idle', msg: 'לא נבדק' },
     claude: { status: 'idle', msg: 'לא נבדק' },
+    openai: { status: 'idle', msg: 'לא נבדק' },
   });
 
   const configStatus = useConfigStatus();
+  const savedChoice = useSummarizeDefault(configStatus);
+  const [pickedChoice, setPickedChoice] = useState<SummarizeChoice | null>(null);
+  const choice = pickedChoice ?? savedChoice;
+  const [defaultMsg, setDefaultMsg] = useState<{ msg: string; error?: boolean } | null>(null);
+
+  const saveDefault = async () => {
+    if (!choice) return;
+    try {
+      const r = await apiFetch('/api/settings/summarize', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(choice),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data?.error || 'שגיאה');
+      setDefaultMsg({ msg: 'נשמר' });
+    } catch (err) {
+      setDefaultMsg({ msg: err instanceof Error ? err.message : 'שגיאה', error: true });
+    }
+  };
 
   const loadDataDir = useCallback(async () => {
     try {
@@ -353,7 +381,7 @@ export default function SettingsPage() {
             <div>
               <div className="set-card__title">פרטי גישה</div>
               <div className="set-card__sub">
-                מוגדרים בקובץ <code>api/.env</code> — ערכו אותו והפעילו מחדש את השרת
+                מוגדרים בקובץ <code>.env</code> — ערכו אותו והפעילו מחדש את השרת
               </div>
             </div>
           </div>
@@ -374,7 +402,7 @@ export default function SettingsPage() {
             );
           })}
           <div style={{ fontSize: '0.78rem', color: 'var(--muted)', marginTop: 8 }}>
-            לתמלול נדרשים OPAL ו-Groq · לסיכום נדרש Gemini או Claude
+            לתמלול נדרשים OPAL ו-Groq · לסיכום נדרש Gemini, Claude או OpenAI
           </div>
         </div>
 
@@ -386,6 +414,29 @@ export default function SettingsPage() {
               <div className="set-card__sub">סטטוס בזמן אמת · בדיקת זמינות וזמני תגובה</div>
             </div>
             <Button onClick={testAll}>▶ בדוק את כולם</Button>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }} data-testid="summarize-default">
+            <label style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>
+              ברירת מחדל לסיכום · אפשר לבחור אחרת בכל הרצאה
+            </label>
+            {choice && (
+              <SummarizePicker
+                value={choice}
+                onChange={(c) => { setPickedChoice(c); setDefaultMsg(null); }}
+                status={configStatus}
+              />
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Button size="xs" onClick={saveDefault} disabled={!choice} data-testid="save-summarize-default">
+                שמור ברירת מחדל
+              </Button>
+              {defaultMsg && (
+                <span style={{ fontSize: '0.78rem', color: defaultMsg.error ? 'var(--error)' : 'var(--muted)' }}>
+                  {defaultMsg.msg}
+                </span>
+              )}
+            </div>
           </div>
 
           {MODELS.map(({ key, emoji, name, sub, role }) => {
