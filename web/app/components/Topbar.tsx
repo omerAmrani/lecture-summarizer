@@ -31,8 +31,6 @@ function deriveCrumbs(pathname: string, className: string | null, lectureName: s
     crumbs.push({ label: 'סטטיסטיקות' });
   } else if (segments[0] === 'settings') {
     crumbs.push({ label: 'הגדרות' });
-  } else if (segments[0] === 'setup') {
-    crumbs.push({ label: 'הגדרת חשבון' });
   } else {
     crumbs.push({ label: segments.join(' / ') });
   }
