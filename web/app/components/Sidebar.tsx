@@ -8,6 +8,8 @@ import { SEMESTER_HE } from '@/lib/status';
 import { sortBySemester, useSelectedSemester } from '@/lib/selectedSemester';
 import NewCourseModal from '@/app/components/NewCourseModal';
 
+const ISSUES_URL = 'https://github.com/omerAmrani/lecture-summarizer/issues/new';
+
 interface ClassRow {
   id: string;
   name: string;
@@ -127,17 +129,36 @@ export default function Sidebar() {
           );
         })}
       </div>
-      {/* Local mode has no login, so nothing to log out of (docs/adr/0002). */}
-      {!localMode && (
-        <button type="button" className="sb__me" onClick={logout} title="התנתקות">
-          <div className="sb__avatar">{email?.[0]?.toUpperCase() || '?'}</div>
-          <div className="sb__metxt">
-            {email || '—'}
-            <br />
-            <small>התנתקות</small>
-          </div>
-        </button>
-      )}
+      <div className="sb__section" style={{ marginTop: 'auto' }}>
+        <a className="sb__item" href={`${ISSUES_URL}?labels=bug`} target="_blank" rel="noreferrer">
+          <span className="sb__icon">!</span>
+          דיווח על באג
+        </a>
+        <a
+          className="sb__item"
+          href={`${ISSUES_URL}?labels=enhancement`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          <span className="sb__icon">✦</span>
+          בקשת פיצ׳ר
+        </a>
+        <a className="sb__item" href="mailto:omeraiagent@gmail.com">
+          <span className="sb__icon">@</span>
+          צור קשר
+        </a>
+        {/* Local mode has no login, so nothing to log out of (docs/adr/0002). */}
+        {!localMode && (
+          <button type="button" className="sb__me" onClick={logout} title="התנתקות">
+            <div className="sb__avatar">{email?.[0]?.toUpperCase() || '?'}</div>
+            <div className="sb__metxt">
+              {email || '—'}
+              <br />
+              <small>התנתקות</small>
+            </div>
+          </button>
+        )}
+      </div>
 
       <NewCourseModal
         open={modalOpen}
