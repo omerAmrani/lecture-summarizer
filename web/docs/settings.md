@@ -35,6 +35,12 @@ Single-page control panel at `/settings` for managing app configuration, the pro
 - Providers without a key in `.env` are disabled and tagged "אין מפתח"
 - Models come live from `GET /api/models/:backend`. Recommended (cheap, long-context) ones come first, tagged "מומלץ", and the top one is preselected when no model is saved.
 
+**Summary prompt** (Custom prompt, see `GLOSSARY.md`):
+- Textarea prefilled with the active prompt from `GET /api/settings/summarize-prompt`; "מותאם" badge when a Custom prompt is saved
+- "שמור" → `PUT` (empty is rejected by the API); "חזור לברירת מחדל" → confirm, then `DELETE`
+- Helper text: the transcript is appended automatically after the prompt
+- Shared fetch helpers in `lib/summaryPrompt.ts` (also used by the lecture page)
+
 **AI model health:**
 - Cards for Gemini, Claude and OpenAI
 - Per-card test button + "בדוק את כולם" — `POST /health/<gemini|claude|openai>`, which test the key from the API's `.env` (see `api/docs/health.md`)

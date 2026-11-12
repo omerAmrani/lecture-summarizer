@@ -1910,3 +1910,10 @@ button.sb__item { border: none; background: none; }
   .stats-grid { grid-template-columns: 1fr; }
   .detail-h__mark { width: 48px; height: 48px; font-size: 1.4rem; }
 }
+
+.prompt-input {
+  width: 100%; min-height: 180px; resize: vertical;
+  padding: 8px 10px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--surface);
+  font: 400 0.8rem/1.5 var(--font-ui);
+}

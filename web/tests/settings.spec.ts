@@ -94,4 +94,33 @@ test.describe('Settings page', () => {
     await expect(page.getByTestId('cred-groq').getByTestId('cred-state')).toHaveText('❌');
     await expect(page.getByTestId('cred-groq')).toContainText('GROQ_X');
   });
+
+  test('summary prompt: edit, save shows Custom badge, reset restores default', async ({ page }) => {
+    const DEFAULT = 'Default prompt text';
+    let saved: string | null = null;
+    const body = () => ({ prompt: saved ?? DEFAULT, default: DEFAULT, isCustom: saved !== null });
+    await page.route('**/api/settings/summarize-prompt', (route) => {
+      const method = route.request().method();
+      if (method === 'PUT') saved = route.request().postDataJSON().prompt;
+      if (method === 'DELETE') saved = null;
+      return route.fulfill({ json: body() });
+    });
+
+    await page.goto('/settings');
+    const card = page.getByTestId('summary-prompt');
+    const input = card.getByTestId('settings-prompt-input');
+    await expect(input).toHaveValue(DEFAULT);
+    await expect(card.getByTestId('prompt-custom-badge')).toHaveCount(0);
+
+    await input.fill('Be brief');
+    const put = page.waitForRequest((r) => r.url().endsWith('/summarize-prompt') && r.method() === 'PUT');
+    await card.getByTestId('save-prompt').click();
+    expect((await put).postDataJSON()).toEqual({ prompt: 'Be brief' });
+    await expect(card.getByTestId('prompt-custom-badge')).toBeVisible();
+
+    page.once('dialog', (d) => d.accept());
+    await card.getByTestId('reset-prompt').click();
+    await expect(input).toHaveValue(DEFAULT);
+    await expect(card.getByTestId('prompt-custom-badge')).toHaveCount(0);
+  });
 });

@@ -11,7 +11,7 @@ export interface ModelOption {
 }
 
 export interface SummarizerBackend {
-  mergeSummaries(chunks: string[], apiKey: string, model: string, onProgress?: ProgressCallback, onToken?: TokenCallback | null): Promise<string>;
+  mergeSummaries(chunks: string[], apiKey: string, model: string, prompt: string, onProgress?: ProgressCallback, onToken?: TokenCallback | null): Promise<string>;
   listModels(apiKey: string): Promise<ModelOption[]>;
 }
 

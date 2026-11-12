@@ -15,6 +15,10 @@ function setSetting(key: string, value: string): void {
   db.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)').run(key, value);
 }
 
+function deleteSetting(key: string): void {
+  db.prepare('DELETE FROM app_settings WHERE key = ?').run(key);
+}
+
 export interface ActiveSemester { semester: string; year: number }
 
 export function getActiveSemester(): ActiveSemester | null {
@@ -41,6 +45,16 @@ export function setSummarizeDefault(value: SummarizeDefault): void {
   setSetting('summarizeDefault', JSON.stringify(value));
 }
 
+// Custom prompt from Settings; null = use the Default prompt. App config, so no meta.json mirror.
+export function getSummarizePrompt(): string | null {
+  return getSetting('summarizePrompt')?.trim() || null;
+}
+
+export function setSummarizePrompt(value: string | null): void {
+  if (value) setSetting('summarizePrompt', value);
+  else deleteSetting('summarizePrompt');
+}
+
 function makeId(name: string): string {
   const clean = name.toLowerCase()
     .replace(/[^\w]/g, '-')
@@ -57,7 +71,7 @@ function writeMetaBackup(filePath: string, data: any): void {
 function lectureWithSummaries(row: any): any {
   if (!row) return null;
   const summaries = db.prepare(
-    'SELECT id, date, backend FROM summaries WHERE lectureId = ? ORDER BY id DESC'
+    'SELECT id, date, backend, model FROM summaries WHERE lectureId = ? ORDER BY id DESC'
   ).all(row.id);
   return { ...row, summaries };
 }
@@ -173,10 +187,16 @@ export function summariesDirPath(classId: string, lectureId: string): string {
 }
 
 // ── Summary versions ──────────────────────────────────────────────────────────
-export function saveSummaryVersion(classId: string, lectureId: string, content: string, backend: string, model?: string): string {
+function summaryPromptPath(classId: string, lectureId: string, summaryId: string): string {
+  return path.join(summariesDirPath(classId, lectureId), `${summaryId}.prompt.txt`);
+}
+
+// The prompt lives next to the summary on disk (not in meta.json), so a rebuild from disk keeps it.
+export function saveSummaryVersion(classId: string, lectureId: string, content: string, backend: string, model: string | undefined, prompt: string): string {
   const summariesDir = summariesDirPath(classId, lectureId);
   mkdirSync(summariesDir, { recursive: true });
   const id = String(Date.now());
+  writeFileSync(summaryPromptPath(classId, lectureId, id), prompt);
   writeFileSync(path.join(summariesDir, `${id}.md`), content);
   db.prepare('INSERT INTO summaries (id, lectureId, date, backend, model) VALUES (?, ?, ?, ?, ?)')
     .run(id, lectureId, new Date().toISOString(), backend, model ?? null);
@@ -191,10 +211,16 @@ export function saveSummaryVersion(classId: string, lectureId: string, content: 
 export function getSummaryVersions(classId: string, lectureId: string): any {
   const lecture = getLecture(classId, lectureId);
   if (!lecture) return { versions: [], currentSummary: null };
-  const versions = db.prepare(
+  const versions = (db.prepare(
     'SELECT id, date, backend, model FROM summaries WHERE lectureId = ? ORDER BY id DESC'
-  ).all(lectureId);
+  ).all(lectureId) as any[]).map((v) => ({ ...v, prompt: getSummaryPrompt(classId, lectureId, v.id) }));
   return { versions, currentSummary: lecture.currentSummary };
+}
+
+// null for summaries made before prompts were saved.
+function getSummaryPrompt(classId: string, lectureId: string, summaryId: string): string | null {
+  const p = summaryPromptPath(classId, lectureId, summaryId);
+  return existsSync(p) ? readFileSync(p, 'utf8') : null;
 }
 
 export function getSummaryContent(classId: string, lectureId: string, summaryId: string): string | null {
@@ -213,6 +239,7 @@ export function deleteSummaryVersion(classId: string, lectureId: string, summary
   const p = path.join(summariesDirPath(classId, lectureId), `${summaryId}.md`);
   if (!existsSync(p)) return false;
   rmSync(p);
+  rmSync(summaryPromptPath(classId, lectureId, summaryId), { force: true });
   db.prepare('DELETE FROM summaries WHERE id = ?').run(summaryId);
   const lecture = getLecture(classId, lectureId);
   if (lecture?.currentSummary === summaryId) {
@@ -288,8 +315,8 @@ export function reloadFromDisk(): { classes: number; lectures: number } {
 
       if (m.summaries?.length) {
         for (const s of m.summaries) {
-          db.prepare('INSERT OR REPLACE INTO summaries (id, lectureId, date, backend) VALUES (?, ?, ?, ?)')
-            .run(s.id, lectureId, s.date, s.backend || 'unknown');
+          db.prepare('INSERT OR REPLACE INTO summaries (id, lectureId, date, backend, model) VALUES (?, ?, ?, ?, ?)')
+            .run(s.id, lectureId, s.date, s.backend || 'unknown', s.model || null);
         }
       }
     }

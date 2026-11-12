@@ -1,8 +1,9 @@
-import { Controller, Get, Put, Body, Param, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Put, Delete, Body, Param, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { StorageService } from '../storage/storage.service';
 import { SummarizeService } from '../summarize/summarize.service';
 import { isSummarizeBackend, summarizeKey } from '../../credentials';
+import { DEFAULT_SUMMARY_PROMPT, validateSummaryPrompt } from '../summarize/backends/prompt';
 import { JwtAuthGuard } from '../../common/jwt-auth.guard';
 
 // Guarded: these routes use the server's provider keys. Local mode passes every request.
@@ -30,6 +31,31 @@ export class SettingsController {
     const value = { backend, model: model?.trim() ?? null };
     this.storage.setSummarizeDefault(value);
     res.json({ default: value });
+  }
+
+  // Custom prompt for every summarize; null in storage = the Default prompt.
+  @Get('settings/summarize-prompt')
+  getSummarizePrompt(@Res() res: Response) {
+    res.json(this.summarizePromptBody());
+  }
+
+  @Put('settings/summarize-prompt')
+  setSummarizePrompt(@Body() body: any, @Res() res: Response) {
+    const result = validateSummaryPrompt(body?.prompt);
+    if ('error' in result) return res.status(400).json({ error: result.error });
+    this.storage.setSummarizePrompt(result.prompt === DEFAULT_SUMMARY_PROMPT ? null : result.prompt);
+    res.json(this.summarizePromptBody());
+  }
+
+  @Delete('settings/summarize-prompt')
+  resetSummarizePrompt(@Res() res: Response) {
+    this.storage.setSummarizePrompt(null);
+    res.json(this.summarizePromptBody());
+  }
+
+  private summarizePromptBody() {
+    const custom = this.storage.getSummarizePrompt();
+    return { prompt: custom ?? DEFAULT_SUMMARY_PROMPT, default: DEFAULT_SUMMARY_PROMPT, isCustom: custom !== null };
   }
 
   // Live model list from the provider, recommended first. Needs that provider's key in api/.env.

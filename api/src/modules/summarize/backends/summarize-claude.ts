@@ -8,7 +8,7 @@ function getClient(apiKey: string): Anthropic {
   return new Anthropic({ apiKey });
 }
 
-export async function mergeSummaries(chunks: string[], apiKey: string, model: string, onProgress = (_: string) => {}, onToken: ((t: string) => void) | null = null): Promise<string> {
+export async function mergeSummaries(chunks: string[], apiKey: string, model: string, prompt: string, onProgress = (_: string) => {}, onToken: ((t: string) => void) | null = null): Promise<string> {
   const fullTranscript = chunks.join('\n\n');
   onProgress('מסכם עם Claude...');
 
@@ -19,7 +19,7 @@ export async function mergeSummaries(chunks: string[], apiKey: string, model: st
       model,
       max_tokens: MERGE_MAX_TOKENS,
       system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: buildPrompt(fullTranscript) }],
+      messages: [{ role: 'user', content: buildPrompt(fullTranscript, prompt) }],
     });
     let full = '';
     for await (const chunk of stream) {
@@ -41,7 +41,7 @@ export async function mergeSummaries(chunks: string[], apiKey: string, model: st
     model,
     max_tokens: MERGE_MAX_TOKENS,
     system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: buildPrompt(fullTranscript) }],
+    messages: [{ role: 'user', content: buildPrompt(fullTranscript, prompt) }],
   });
   return (response.content[0] as any).text;
 }

@@ -92,4 +92,44 @@ test.describe('Lecture detail page', () => {
     await expect(page.getByTestId('summary-body')).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText('הסיכום הושלם!')).toBeVisible();
   });
+
+  test('re-summarize with an edited prompt sends it as a One-off prompt; save as default calls Settings', async ({ page }) => {
+    await page.route('**/api/config/status', (route) =>
+      route.fulfill({ json: { localMode: true, opal: true, groq: true, gemini: true, claude: true } }),
+    );
+    await page.route(STATUS_URL, (route) =>
+      route.fulfill({ json: { id: LECTURE_ID, name: 'E2E Test Lecture', status: 'summarized', currentSummary: 'v1' } }),
+    );
+    await page.route(SUMMARIES_URL, (route) =>
+      route.fulfill({ json: { versions: [{ id: 'v1', date: '2026-01-01', backend: 'gemini', prompt: 'Version prompt' }], currentSummary: 'v1' } }),
+    );
+    await page.route(`**/${LECTURE_ID}/summary`, (route) => route.fulfill({ body: 'Old summary' }));
+    await page.route(TRANSCRIPT_URL, (route) => route.fulfill({ body: 'transcript' }));
+    await page.route('**/api/settings/summarize-prompt', (route) =>
+      route.fulfill({ json: { prompt: 'Active prompt', default: 'Active prompt', isCustom: false } }),
+    );
+    await page.route(`**/${LECTURE_ID}/summarize`, (route) =>
+      route.fulfill({
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' },
+        body: 'data: {"type":"done","summary":"New summary","status":"summarized"}\n\n',
+      }),
+    );
+
+    await page.goto(`/classes/${CLASS_ID}/lectures/${LECTURE_ID}`);
+    await page.getByTestId('toggle-prompt').click();
+    // Opens with the prompt the viewed version was made with.
+    const input = page.getByTestId('prompt-input');
+    await expect(input).toHaveValue('Version prompt');
+    await input.fill('Make it shorter');
+
+    const save = page.waitForRequest((r) => r.url().endsWith('/summarize-prompt') && r.method() === 'PUT');
+    await page.getByTestId('save-prompt-default').click();
+    expect((await save).postDataJSON()).toEqual({ prompt: 'Make it shorter' });
+
+    await input.fill('One-off tweak');
+    const summarizeReq = page.waitForRequest((r) => r.url().endsWith('/summarize'));
+    await page.getByRole('button', { name: '🔄 סכם מחדש' }).click();
+    expect((await summarizeReq).postDataJSON()).toMatchObject({ prompt: 'One-off tweak' });
+  });
 });

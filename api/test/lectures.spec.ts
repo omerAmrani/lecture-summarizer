@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import * as config from '../src/config';
-import { writeFileSync, mkdirSync } from 'fs';
+import { writeFileSync, mkdirSync, existsSync, rmSync } from 'fs';
 import path from 'path';
 import { LecturesModule } from '../src/modules/lectures/lectures.module';
 import { LecturesController } from '../src/modules/lectures/lectures.controller';
@@ -14,6 +14,7 @@ import { StorageService } from '../src/modules/storage/storage.service';
 import { truncateAll, cleanClassesDir } from './helpers/db';
 import { authCookie } from './helpers/auth';
 import { tryAcquireJobSlot, releaseJobSlot } from '../src/job-guard';
+import { DEFAULT_SUMMARY_PROMPT } from '../src/modules/summarize/backends/prompt';
 
 const mockDownload = {
   extractVideoUrl: jest.fn().mockResolvedValue('https://example.com/video.mp4'),
@@ -345,6 +346,58 @@ describe('LecturesController', () => {
       expect(statusRes.body.summarizeModel).toBe('claude-saved');
     });
 
+    describe('summary prompt', () => {
+      async function summarizeWith(body: object = {}) {
+        const created = await post(`/api/classes/${classId}/lectures`).send({ name: 'L', url: 'https://example.com' });
+        const id = created.body.id;
+        const dir = storage.lectureDirPath(classId, id);
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(path.join(dir, 'transcript.txt'), 'Test transcript');
+        const merge = jest.fn().mockResolvedValue('S');
+        mockSummarize.getSummarizer.mockResolvedValueOnce({ mergeSummaries: merge });
+        const res = await post(`/api/classes/${classId}/lectures/${id}/summarize`).send(body)
+          .buffer(true)
+          .parse((response, callback) => {
+            let data = '';
+            response.on('data', (chunk: Buffer) => { data += chunk.toString(); });
+            response.on('end', () => callback(null, data));
+          });
+        return { id, res, merge };
+      }
+
+      it('uses the Default prompt and saves it with the version', async () => {
+        const { id, merge } = await summarizeWith();
+        expect(merge.mock.calls[0][3]).toBe(DEFAULT_SUMMARY_PROMPT);
+        expect(storage.getSummaryVersions(classId, id).versions[0].prompt).toBe(DEFAULT_SUMMARY_PROMPT);
+      });
+
+      it('uses the Custom prompt from Settings', async () => {
+        storage.setSummarizePrompt('Custom one');
+        const { merge } = await summarizeWith();
+        expect(merge.mock.calls[0][3]).toBe('Custom one');
+      });
+
+      it('a One-off prompt wins for that run only', async () => {
+        storage.setSummarizePrompt('Custom one');
+        const { id, merge } = await summarizeWith({ prompt: '  One-off  ' });
+        expect(merge.mock.calls[0][3]).toBe('One-off');
+        expect(storage.getSummaryVersions(classId, id).versions[0].prompt).toBe('One-off');
+        expect(storage.getSummarizePrompt()).toBe('Custom one');
+      });
+
+      it('rejects an empty or too-long One-off prompt', async () => {
+        expect((await summarizeWith({ prompt: '  ' })).res.status).toBe(400);
+        expect((await summarizeWith({ prompt: 'x'.repeat(10_001) })).res.status).toBe(400);
+      });
+
+      it('lists null prompt for versions saved before prompts were recorded', async () => {
+        const created = await post(`/api/classes/${classId}/lectures`).send({ name: 'L', url: 'https://example.com' });
+        const summaryId = storage.saveSummaryVersion(classId, created.body.id, 'old', 'gemini', undefined, 'P');
+        rmSync(path.join(storage.lectureDirPath(classId, created.body.id), 'summaries', `${summaryId}.prompt.txt`));
+        expect(storage.getSummaryVersions(classId, created.body.id).versions[0].prompt).toBeNull();
+      });
+    });
+
     it('returns 400 instead of falling back when the picked provider has no key', async () => {
       const created = await post(`/api/classes/${classId}/lectures`).send({ name: 'L', url: 'https://example.com' });
       const id = created.body.id;
@@ -473,7 +526,7 @@ describe('LecturesController', () => {
         .send({ name: 'L', url: 'https://example.com' });
       const id = created.body.id;
 
-      const summaryId = storage.saveSummaryVersion(classId, id, 'Version content', 'gemini');
+      const summaryId = storage.saveSummaryVersion(classId, id, 'Version content', 'gemini', undefined, 'P');
 
       const res = await get(`/api/classes/${classId}/lectures/${id}/summaries/${summaryId}`);
       expect(res.status).toBe(200);
@@ -495,11 +548,14 @@ describe('LecturesController', () => {
         .send({ name: 'L', url: 'https://example.com' });
       const id = created.body.id;
 
-      const summaryId = storage.saveSummaryVersion(classId, id, 'to delete', 'gemini');
+      const summaryId = storage.saveSummaryVersion(classId, id, 'to delete', 'gemini', undefined, 'P');
+      const promptFile = path.join(storage.lectureDirPath(classId, id), 'summaries', `${summaryId}.prompt.txt`);
+      expect(existsSync(promptFile)).toBe(true);
 
       const res = await del(`/api/classes/${classId}/lectures/${id}/summaries/${summaryId}`);
       expect(res.status).toBe(200);
       expect(res.body.ok).toBe(true);
+      expect(existsSync(promptFile)).toBe(false);
 
       const afterDelete = storage.getSummaryVersions(classId, id);
       expect(afterDelete.versions).toHaveLength(0);

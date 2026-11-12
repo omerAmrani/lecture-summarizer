@@ -8,7 +8,7 @@ function getModel(apiKey: string, model: string) {
   return new GoogleGenerativeAI(apiKey).getGenerativeModel({ model, systemInstruction: SYSTEM_PROMPT });
 }
 
-export async function mergeSummaries(chunks: string[], apiKey: string, modelId: string, onProgress = (_: string) => {}, onToken: ((t: string) => void) | null = null): Promise<string> {
+export async function mergeSummaries(chunks: string[], apiKey: string, modelId: string, prompt: string, onProgress = (_: string) => {}, onToken: ((t: string) => void) | null = null): Promise<string> {
   const fullTranscript = chunks.join('\n\n');
   onProgress('מסכם עם Gemini...');
 
@@ -16,7 +16,7 @@ export async function mergeSummaries(chunks: string[], apiKey: string, modelId: 
 
   if (onToken) {
     const result = await model.generateContentStream({
-      contents: [{ role: 'user', parts: [{ text: buildPrompt(fullTranscript) }] }],
+      contents: [{ role: 'user', parts: [{ text: buildPrompt(fullTranscript, prompt) }] }],
       generationConfig: { maxOutputTokens: MERGE_MAX_TOKENS },
     });
     let full = '';
@@ -36,7 +36,7 @@ export async function mergeSummaries(chunks: string[], apiKey: string, modelId: 
   }
 
   const result = await model.generateContent({
-    contents: [{ role: 'user', parts: [{ text: buildPrompt(fullTranscript) }] }],
+    contents: [{ role: 'user', parts: [{ text: buildPrompt(fullTranscript, prompt) }] }],
     generationConfig: { maxOutputTokens: MERGE_MAX_TOKENS },
   });
   const response = result.response;

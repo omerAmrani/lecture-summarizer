@@ -10,9 +10,10 @@ Generates an AI summary from a lecture transcript. Supports multiple backends an
 **Flow:**
 1. Reads `transcript.txt`
 2. `getSummarizeBackend()` (`src/credentials.ts`) resolves provider + model; `SummarizeService.getSummarizer(backend)` loads it
-3. `mergeSummaries([transcript], apiKey, model, onProgress, onToken)` — chunking + merge logic
-4. Saves result as a new versioned file; sets it as `currentSummary`
-5. Sets lecture status: `summarizing` → `summarized`
+3. Resolves the summary prompt once: the body's One-off `prompt` → the saved Custom prompt → `DEFAULT_SUMMARY_PROMPT`
+4. `mergeSummaries([transcript], apiKey, model, prompt, onProgress, onToken)` — chunking + merge logic
+5. Saves result as a new versioned file, with its prompt next to it; sets it as `currentSummary`
+6. Sets lecture status: `summarizing` → `summarized`
 
 **Backends:**
 - `gemini` — Google Gemini (requires `GEMINI_API_KEY`; env default model `GEMINI_MODEL`, `gemini-2.5-flash`)
@@ -30,12 +31,20 @@ Generates an AI summary from a lecture transcript. Supports multiple backends an
 
 **Recommended models** come first in the list and are tagged in the UI: the cheap, long-context tier per provider, matched by name (Gemini `flash`, Claude `haiku`, OpenAI `mini`). No provider API exposes prices, so this is a name heuristic in `summarize.service.ts`.
 
+**Summary prompt** (see `GLOSSARY.md`):
+- `buildPrompt(transcript, prompt)` in `backends/prompt.ts` always appends `\n\nTranscript:\n<transcript>` after the prompt, so an edited prompt can't drop the transcript. With `DEFAULT_SUMMARY_PROMPT` the request is byte-for-byte what it was before prompts were editable.
+- Custom prompt: `GET /api/settings/summarize-prompt` → `{ prompt, default, isCustom }`; `PUT` `{ prompt }` saves it; `DELETE` resets to the Default prompt. Stored in `app_settings` (`summarizePrompt`) only, no `meta.json` mirror. Saving the Default prompt's exact text stores nothing (not custom).
+- Validation (`validateSummaryPrompt`, shared by `PUT` and the summarize body): trimmed, non-empty, at most 10,000 chars, else `400`.
+- The prompt is resolved once at the start of a run, so changing Settings mid-run doesn't affect it.
+- Each version saves the full prompt it used as `summaries/<id>.prompt.txt` next to `<id>.md` (deleted with it). `GET .../summaries` returns it as `prompt`; `null` for versions made before prompts were saved.
+- The output-language rule (`SYSTEM_PROMPT`) is not part of the summary prompt and isn't editable.
+
 **Versions:** each run appends a new version entry. `currentSummary` on the lecture points to the active one. Old versions can be switched to or deleted via the summaries routes.
 
 **Output language:** hardcoded to Hebrew via `SYSTEM_PROMPT` in `backends/prompt.ts`, passed as the API's native `system` instruction (not a user-content string) for stronger adherence on long transcripts. There is no `OUTPUT_LANG` config — no per-language setting exists yet.
 
 ## Web
 
-- Lecture detail page — summary rendered as markdown; version history panel; re-summarize with provider + model picker, preset to the saved default
-- Settings page — default provider + model picker
+- Lecture detail page — summary rendered as markdown; version history panel; re-summarize with provider + model picker, preset to the saved default; editable prompt per version (One-off prompt, or save as Custom prompt)
+- Settings page — default provider + model picker; Custom prompt editor with reset
 - See [lectures.md](../../web/docs/lectures.md)

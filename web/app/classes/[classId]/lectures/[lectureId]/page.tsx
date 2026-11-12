@@ -12,6 +12,7 @@ import type { SummarizeChoice } from '@/app/components/SummarizePicker';
 import { Status, fmtDateLong } from '@/app/components/Status';
 import { Button } from '@/app/components/Button';
 import { Select } from '@/app/components/Select';
+import { fetchSummaryPrompt, saveSummaryPrompt } from '@/lib/summaryPrompt';
 
 interface LectureMeta {
   id: string;
@@ -38,6 +39,8 @@ interface SummaryVersion {
   date: string;
   backend: string;
   model?: string | null;
+  // null for versions made before prompts were saved.
+  prompt?: string | null;
 }
 
 interface SummaryHistory {
@@ -81,6 +84,9 @@ export default function LecturePage() {
   const [retranscribeLabel, setRetranscribeLabel] = useState(RETRANSCRIBE_IDLE);
   const [progressPct, setProgressPct] = useState(0);
   const streamBufferRef = useRef('');
+  // Active prompt (Custom or Default); a draft that differs from it is sent as a One-off prompt.
+  const [activePrompt, setActivePrompt] = useState<string | null>(null);
+  const [promptDraft, setPromptDraft] = useState<string | null>(null);
 
   const loadLecture = useCallback(async () => {
     try {
@@ -131,6 +137,7 @@ export default function LecturePage() {
   useEffect(() => {
     loadLecture();
     loadLectures();
+    fetchSummaryPrompt().then((p) => setActivePrompt(p.prompt)).catch(() => {});
   }, [loadLecture, loadLectures]);
 
   // Keep the header's % fresh while a transcription runs, whichever tab started it.
@@ -207,6 +214,24 @@ export default function LecturePage() {
     }
   };
 
+  const viewedVersion = history.versions.find((v) => v.id === (viewedSummaryId ?? history.currentSummary));
+  const editedPrompt = promptDraft?.trim();
+  const oneOffPrompt = editedPrompt && editedPrompt !== activePrompt ? editedPrompt : null;
+
+  const togglePrompt = () => {
+    setPromptDraft(promptDraft === null ? (viewedVersion?.prompt ?? activePrompt ?? '') : null);
+  };
+
+  const savePromptAsDefault = async () => {
+    if (!editedPrompt) return;
+    try {
+      setActivePrompt((await saveSummaryPrompt(editedPrompt)).prompt);
+      showToast('נשמר כברירת מחדל');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'שגיאה', true);
+    }
+  };
+
   const runSummarize = async () => {
     if (jobActive) return;
     setActionLabel('מתחיל...');
@@ -239,7 +264,7 @@ export default function LecturePage() {
 
       await streamSSE(
         `/api/classes/${classId}/lectures/${lectureId}/summarize`,
-        choice ? { backend: choice.backend, model: choice.model } : {},
+        { ...(choice && { backend: choice.backend, model: choice.model }), ...(oneOffPrompt && { prompt: oneOffPrompt }) },
         (ev) => {
           if (ev.type === 'progress') {
             setActionLabel(String(ev.message));
@@ -268,6 +293,7 @@ export default function LecturePage() {
       setCurrentJobType(null);
       setActionLabel(SUMMARIZE_IDLE);
       setViewedSummaryId(null);
+      setPromptDraft(null);
       loadLecture();
       loadHistory();
     }
@@ -326,6 +352,7 @@ export default function LecturePage() {
   };
 
   const viewSummary = async (summaryId: string) => {
+    setPromptDraft(null);
     if (summaryId === history.currentSummary) {
       setViewedSummaryId(null);
       await loadSummary();
@@ -530,6 +557,29 @@ export default function LecturePage() {
                 {actionLabel !== SUMMARIZE_IDLE && <span className="spinner" />}
                 {actionLabel}
               </Button>
+              {summary && (
+                <Button block variant="ghost" onClick={togglePrompt} aria-expanded={promptDraft !== null} data-testid="toggle-prompt">
+                  {promptDraft === null ? '📝 הצג פרומפט' : 'הסתר פרומפט'}
+                </Button>
+              )}
+              {promptDraft !== null && (
+                <>
+                  <textarea
+                    className="prompt-input"
+                    dir="auto"
+                    aria-label="פרומפט לסיכום"
+                    data-testid="prompt-input"
+                    value={promptDraft}
+                    onChange={(e) => setPromptDraft(e.target.value)}
+                  />
+                  <div style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>
+                    {oneOffPrompt ? 'ישמש בסיכום מחדש הבא בלבד' : 'זהה לפרומפט ברירת המחדל'} · התמלול מצורף אוטומטית
+                  </div>
+                  <Button block size="xs" onClick={savePromptAsDefault} disabled={!oneOffPrompt} data-testid="save-prompt-default">
+                    שמור כברירת מחדל
+                  </Button>
+                </>
+              )}
               <Button block onClick={runRetranscribe} disabled={jobActive || !!transcribeHint} title={transcribeHint ?? undefined}>
                 {retranscribeLabel !== RETRANSCRIBE_IDLE && <span className="spinner" />}
                 {retranscribeLabel}

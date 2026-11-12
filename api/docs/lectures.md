@@ -36,7 +36,7 @@ There is no `skipped` status — every lecture created (manually or via sync/cro
 
 **Summarize (SSE):** `POST .../summarize`
 - reads `transcript.txt` → summarizes via backend → saves versioned summary → sets as current
-- Body: optional `{ backend: 'gemini' | 'claude' | 'openai', model?: string }`. A requested backend without a key is a `400` (no silent fallback). With none requested it uses the saved default, then `SUMMARIZE_BACKEND`, then any configured provider. See [summarize.md](summarize.md) for model resolution
+- Body: optional `{ backend: 'gemini' | 'claude' | 'openai', model?: string, prompt?: string }`. `prompt` is a One-off prompt for this run only (never saved as the Custom prompt); empty or over 10,000 chars is a `400`. A requested backend without a key is a `400` (no silent fallback). With none requested it uses the saved default, then `SUMMARIZE_BACKEND`, then any configured provider. See [summarize.md](summarize.md) for model resolution
 
 **SSE event shapes:**
 - `{ type: 'progress', step, message, pct? }` — `pct` (0–99) is set only on ffmpeg download progress during transcribe
@@ -49,9 +49,9 @@ There is no `skipped` status — every lecture created (manually or via sync/cro
 **File routes:**
 - `GET .../transcript` — raw `transcript.txt`
 - `GET .../summary` — latest summary version's content (`lectures.currentSummary` always points at the newest surviving version — there's no manual "set current" anymore)
-- `GET .../summaries` — list of all summary versions `{ versions[], currentSummary }`
+- `GET .../summaries` — list of all summary versions `{ versions[], currentSummary }`; each version has `{ id, date, backend, model, prompt }` (`prompt` is `null` for versions made before prompts were saved)
 - `GET .../summaries/:summaryId` — specific version content (read-only, does not change which version is latest)
-- `DELETE .../summaries/:summaryId` — delete a version; if it was the latest, the next-newest remaining version becomes latest
+- `DELETE .../summaries/:summaryId` — delete a version (and its saved prompt); if it was the latest, the next-newest remaining version becomes latest
 
 ## Web
 

@@ -24,6 +24,9 @@
 - "תמלול" toggles the pane to the raw `transcript.txt` (lazy-loaded on first switch) and back to the summary on a second click
 - Toolbar row (same line as the picker), icon-only buttons right-to-left: 📋 copy copies whichever content is currently shown (summary or transcript); 🗑 delete removes whichever summary version is currently selected (summary view only) — if that was the latest, the next-newest remaining version becomes latest
 - Re-summarize button with provider + model picker (`SummarizePicker`), preset to the default saved in Settings. A change here applies to this run only; re-transcribe re-runs full transcription (no test-mode variant)
+- "📝 הצג פרומפט" (only when there's a summary) opens an editable textarea with the prompt the viewed version was made with — or the active prompt (Custom, else Default) for versions made before prompts were saved. Switching version or finishing a run closes it.
+  - If the text differs from the active prompt, the next "🔄 סכם מחדש" sends it as a One-off `prompt` for that run only; otherwise the request is unchanged
+  - "שמור כברירת מחדל" saves the text as the Custom prompt (`PUT /api/settings/summarize-prompt`), the same as saving in Settings
 - Buttons are disabled with a hint tooltip when the API's `.env` lacks the keys they need (`lib/configStatus.ts`): re-transcribe needs OPAL + Groq; summarize needs Gemini, Claude or OpenAI, plus OPAL + Groq when the lecture has no transcript yet (it transcribes first)
 
 **Gotcha:** summary streaming uses a buffer ref (`streamBufferRef`) to accumulate tokens before rendering, avoiding excessive re-renders during fast token streams.

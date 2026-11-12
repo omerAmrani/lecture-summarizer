@@ -11,6 +11,8 @@ import { useConfigStatus } from '@/lib/configStatus';
 import type { CredentialId } from '@/lib/configStatus';
 import { SummarizePicker, useSummarizeDefault } from '@/app/components/SummarizePicker';
 import type { SummarizeChoice } from '@/app/components/SummarizePicker';
+import { fetchSummaryPrompt, saveSummaryPrompt, resetSummaryPrompt } from '@/lib/summaryPrompt';
+import type { SummaryPromptState } from '@/lib/summaryPrompt';
 
 interface DataDirInfo {
   current: string;
@@ -111,6 +113,34 @@ export default function SettingsPage() {
     } catch (err) {
       setDefaultMsg({ msg: err instanceof Error ? err.message : 'שגיאה', error: true });
     }
+  };
+
+  const [promptState, setPromptState] = useState<SummaryPromptState | null>(null);
+  const [promptDraft, setPromptDraft] = useState('');
+  const [promptMsg, setPromptMsg] = useState<{ msg: string; error?: boolean } | null>(null);
+
+  const applyPrompt = (p: SummaryPromptState) => {
+    setPromptState(p);
+    setPromptDraft(p.prompt);
+  };
+
+  useEffect(() => {
+    fetchSummaryPrompt().then(applyPrompt).catch(() => {});
+  }, []);
+
+  const runPromptAction = async (action: () => Promise<SummaryPromptState>, okMsg: string) => {
+    try {
+      applyPrompt(await action());
+      setPromptMsg({ msg: okMsg });
+    } catch (err) {
+      setPromptMsg({ msg: err instanceof Error ? err.message : 'שגיאה', error: true });
+    }
+  };
+
+  const savePrompt = () => runPromptAction(() => saveSummaryPrompt(promptDraft), 'נשמר');
+  const resetPrompt = () => {
+    if (!confirm('לחזור לפרומפט ברירת המחדל?')) return;
+    runPromptAction(resetSummaryPrompt, 'שוחזר לברירת המחדל');
   };
 
   const loadDataDir = useCallback(async () => {
@@ -478,6 +508,41 @@ export default function SettingsPage() {
               </div>
             );
           })}
+        </div>
+
+        {/* Summary prompt */}
+        <div className="set-card" data-testid="summary-prompt">
+          <div className="set-card__h">
+            <div>
+              <div className="set-card__title">
+                פרומפט לסיכום
+                {promptState?.isCustom && <span className="chip chip--accent" style={{ marginInlineStart: 8 }} data-testid="prompt-custom-badge">מותאם</span>}
+              </div>
+              <div className="set-card__sub">משמש בכל סיכום · התמלול מצורף אוטומטית אחרי ההוראות שלך</div>
+            </div>
+          </div>
+          <textarea
+            className="prompt-input"
+            dir="auto"
+            aria-label="פרומפט לסיכום"
+            data-testid="settings-prompt-input"
+            value={promptDraft}
+            onChange={(e) => { setPromptDraft(e.target.value); setPromptMsg(null); }}
+            disabled={!promptState}
+          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+            <Button size="xs" onClick={savePrompt} disabled={!promptDraft.trim() || promptDraft === promptState?.prompt} data-testid="save-prompt">
+              שמור
+            </Button>
+            <Button size="xs" variant="ghost" onClick={resetPrompt} disabled={!promptState?.isCustom} data-testid="reset-prompt">
+              חזור לברירת מחדל
+            </Button>
+            {promptMsg && (
+              <span style={{ fontSize: '0.78rem', color: promptMsg.error ? 'var(--error)' : 'var(--muted)' }}>
+                {promptMsg.msg}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>

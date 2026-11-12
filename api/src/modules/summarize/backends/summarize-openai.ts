@@ -8,14 +8,14 @@ function getClient(apiKey: string): OpenAI {
   return new OpenAI({ apiKey });
 }
 
-function messages(transcript: string): OpenAI.Chat.ChatCompletionMessageParam[] {
+function messages(transcript: string, prompt: string): OpenAI.Chat.ChatCompletionMessageParam[] {
   return [
     { role: 'system', content: SYSTEM_PROMPT },
-    { role: 'user', content: buildPrompt(transcript) },
+    { role: 'user', content: buildPrompt(transcript, prompt) },
   ];
 }
 
-export async function mergeSummaries(chunks: string[], apiKey: string, model: string, onProgress = (_: string) => {}, onToken: ((t: string) => void) | null = null): Promise<string> {
+export async function mergeSummaries(chunks: string[], apiKey: string, model: string, prompt: string, onProgress = (_: string) => {}, onToken: ((t: string) => void) | null = null): Promise<string> {
   const fullTranscript = chunks.join('\n\n');
   onProgress('מסכם עם OpenAI...');
 
@@ -25,7 +25,7 @@ export async function mergeSummaries(chunks: string[], apiKey: string, model: st
     const stream = await client.chat.completions.create({
       model,
       max_completion_tokens: MERGE_MAX_TOKENS,
-      messages: messages(fullTranscript),
+      messages: messages(fullTranscript, prompt),
       stream: true,
     });
     let full = '';
@@ -49,7 +49,7 @@ export async function mergeSummaries(chunks: string[], apiKey: string, model: st
   const response = await client.chat.completions.create({
     model,
     max_completion_tokens: MERGE_MAX_TOKENS,
-    messages: messages(fullTranscript),
+    messages: messages(fullTranscript, prompt),
   });
   const choice = response.choices[0];
   const text = choice?.message?.content ?? '';

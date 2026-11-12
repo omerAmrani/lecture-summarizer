@@ -7,6 +7,7 @@ import { ActiveJob, LecturesService } from './lectures.service';
 import { StorageService } from '../storage/storage.service';
 import { DownloadService } from '../download/download.service';
 import { SummarizeService } from '../summarize/summarize.service';
+import { DEFAULT_SUMMARY_PROMPT, validateSummaryPrompt } from '../summarize/backends/prompt';
 import { CurrentUser } from '../../common/current-user.decorator';
 import { JwtAuthGuard } from '../../common/jwt-auth.guard';
 import { tryAcquireJobSlot, releaseJobSlot } from '../../job-guard';
@@ -174,6 +175,14 @@ export class LecturesController {
     if ('error' in resolved) return res.status(400).json({ error: resolved.error });
     const { backend: usedBackend, apiKey, model: usedModel } = resolved;
 
+    // One-off prompt → Custom prompt → Default prompt. Resolved once, so a Settings change mid-run doesn't affect it.
+    let prompt = this.storage.getSummarizePrompt() ?? DEFAULT_SUMMARY_PROMPT;
+    if (body?.prompt !== undefined) {
+      const oneOff = validateSummaryPrompt(body.prompt);
+      if ('error' in oneOff) return res.status(400).json({ error: oneOff.error });
+      prompt = oneOff.prompt;
+    }
+
     const send = this.startSSE(res);
     const key = `${classId}/${lectureId}`;
 
@@ -194,13 +203,14 @@ export class LecturesController {
           [transcript],
           apiKey,
           usedModel,
+          prompt,
           (msg: string) => send({ type: 'progress', step: 'summarize', message: msg }),
           (token: string) => send({ type: 'token', token }),
         ),
         controller.signal,
       );
 
-      this.storage.saveSummaryVersion(classId, lectureId, summary, usedBackend, usedModel);
+      this.storage.saveSummaryVersion(classId, lectureId, summary, usedBackend, usedModel, prompt);
       this.storage.updateLectureMeta(classId, lectureId, {
         status: 'summarized',
         summarizedAt: new Date().toISOString(),

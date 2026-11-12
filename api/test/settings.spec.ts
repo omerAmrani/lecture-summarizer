@@ -5,6 +5,7 @@ import * as config from '../src/config';
 import { JobsModule } from '../src/modules/jobs/jobs.module';
 import { SummarizeService } from '../src/modules/summarize/summarize.service';
 import { getSummarizeBackend } from '../src/credentials';
+import { buildPrompt, DEFAULT_SUMMARY_PROMPT } from '../src/modules/summarize/backends/prompt';
 import { truncateAll } from './helpers/db';
 import { authCookie } from './helpers/auth';
 
@@ -14,6 +15,7 @@ describe('Summarize settings + models', () => {
   const cookie = authCookie('user-a');
   const get = (url: string) => request(app.getHttpServer()).get(url).set('Cookie', cookie);
   const put = (url: string) => request(app.getHttpServer()).put(url).set('Cookie', cookie);
+  const del = (url: string) => request(app.getHttpServer()).delete(url).set('Cookie', cookie);
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({ imports: [JobsModule] }).compile();
@@ -46,6 +48,48 @@ describe('Summarize settings + models', () => {
       expect(bad.status).toBe(400);
       const blank = await put('/api/settings/summarize').send({ backend: 'claude', model: ' ' });
       expect(blank.status).toBe(400);
+    });
+  });
+
+  describe('GET/PUT/DELETE /api/settings/summarize-prompt', () => {
+    const url = '/api/settings/summarize-prompt';
+
+    it('requires a session', async () => {
+      expect((await request(app.getHttpServer()).get(url)).status).toBe(401);
+    });
+
+    it('starts on the Default prompt', async () => {
+      expect((await get(url)).body).toEqual({ prompt: DEFAULT_SUMMARY_PROMPT, default: DEFAULT_SUMMARY_PROMPT, isCustom: false });
+    });
+
+    it('saves a trimmed Custom prompt, then resets it', async () => {
+      const saved = await put(url).send({ prompt: '  Be brief  ' });
+      expect(saved.body).toMatchObject({ prompt: 'Be brief', isCustom: true });
+      expect((await get(url)).body).toMatchObject({ prompt: 'Be brief', isCustom: true });
+
+      const reset = await del(url);
+      expect(reset.body).toMatchObject({ prompt: DEFAULT_SUMMARY_PROMPT, isCustom: false });
+    });
+
+    it('saving the Default prompt text is not custom', async () => {
+      expect((await put(url).send({ prompt: DEFAULT_SUMMARY_PROMPT })).body.isCustom).toBe(false);
+    });
+
+    it('rejects empty, missing or too-long prompts', async () => {
+      expect((await put(url).send({ prompt: '   ' })).status).toBe(400);
+      expect((await put(url).send({})).status).toBe(400);
+      expect((await put(url).send({ prompt: 'x'.repeat(10_001) })).status).toBe(400);
+    });
+  });
+
+  describe('buildPrompt', () => {
+    it('is byte-for-byte the pre-feature request with the Default prompt', () => {
+      expect(buildPrompt('T', DEFAULT_SUMMARY_PROMPT)).toBe(`${DEFAULT_SUMMARY_PROMPT}\n\nTranscript:\nT`);
+      expect(buildPrompt('T', DEFAULT_SUMMARY_PROMPT).endsWith('Skip filler, repetition, and admin announcements.\n\nTranscript:\nT')).toBe(true);
+    });
+
+    it('always appends the transcript after a custom prompt', () => {
+      expect(buildPrompt('the transcript', 'Be brief')).toBe('Be brief\n\nTranscript:\nthe transcript');
     });
   });
 
