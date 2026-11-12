@@ -5,6 +5,7 @@ import { TranscribeProcessor } from './transcribe.processor';
 import { StorageModule } from '../storage/storage.module';
 import { DownloadModule } from '../download/download.module';
 import { SummarizeModule } from '../summarize/summarize.module';
+import { EmailModule } from '../email/email.module';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
@@ -13,6 +14,7 @@ import { AuthModule } from '../auth/auth.module';
     DownloadModule,
     SummarizeModule,
     AuthModule,
+    EmailModule,
   ],
   controllers: [LecturesController],
   providers: [LecturesService, TranscribeProcessor],

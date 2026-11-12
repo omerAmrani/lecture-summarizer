@@ -1,9 +1,10 @@
-import { Controller, Get, Put, Delete, Body, Param, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Put, Post, Delete, Body, Param, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { StorageService } from '../storage/storage.service';
 import { SummarizeService } from '../summarize/summarize.service';
 import { isSummarizeBackend, summarizeKey } from '../../credentials';
 import { DEFAULT_SUMMARY_PROMPT, validateSummaryPrompt } from '../summarize/backends/prompt';
+import { EmailService, MailError } from '../email/email.service';
 import { JwtAuthGuard } from '../../common/jwt-auth.guard';
 
 // Guarded: these routes use the server's provider keys. Local mode passes every request.
@@ -13,6 +14,7 @@ export class SettingsController {
   constructor(
     private readonly storage: StorageService,
     private readonly summarize: SummarizeService,
+    private readonly email: EmailService,
   ) {}
 
   // Default provider + model for summarize; the lecture page can still override per run.
@@ -56,6 +58,32 @@ export class SettingsController {
   private summarizePromptBody() {
     const custom = this.storage.getSummarizePrompt();
     return { prompt: custom ?? DEFAULT_SUMMARY_PROMPT, default: DEFAULT_SUMMARY_PROMPT, isCustom: custom !== null };
+  }
+
+  // Recipient of summary mails (single address); null = mail off.
+  @Get('settings/email')
+  getMailRecipient(@Res() res: Response) {
+    res.json({ recipient: this.storage.getMailRecipient() });
+  }
+
+  @Put('settings/email')
+  setMailRecipient(@Body() body: any, @Res() res: Response) {
+    const recipient = typeof body?.recipient === 'string' ? body.recipient.trim() : body?.recipient;
+    if (recipient !== null && recipient !== '' && !(typeof recipient === 'string' && /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(recipient))) {
+      return res.status(400).json({ error: 'recipient must be a single email address, or empty to turn mail off' });
+    }
+    this.storage.setMailRecipient(recipient || null);
+    res.json({ recipient: recipient || null });
+  }
+
+  @Post('settings/email/test')
+  async sendTestMail(@Res() res: Response) {
+    try {
+      await this.email.sendTest();
+      res.status(200).json({ ok: true });
+    } catch (err: any) {
+      res.status(err instanceof MailError ? err.status : 500).json({ error: err.message });
+    }
   }
 
   // Live model list from the provider, recommended first. Needs that provider's key in api/.env.

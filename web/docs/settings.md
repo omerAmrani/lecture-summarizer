@@ -41,6 +41,12 @@ Single-page control panel at `/settings` for managing app configuration, the pro
 - Helper text: the transcript is appended automatically after the prompt
 - Shared fetch helpers in `lib/summaryPrompt.ts` (also used by the lecture page)
 
+**Summary mail** (Recipient, see `GLOSSARY.md` and `api/docs/email.md`):
+- Email input saved with "שמור" via `PUT /api/settings/email`; empty turns mail off. Invalid or multiple addresses show the API's error.
+- "שלח מייל בדיקה" (`POST /api/settings/email/test`) is enabled only when the saved Recipient equals the input
+- The credentials checklist has a "מייל (SMTP)" row for the `SMTP_*` keys in `.env`
+- Helpers in `lib/email.ts` (also used by the lecture page)
+
 **AI model health:**
 - Cards for Gemini, Claude and OpenAI
 - Per-card test button + "בדוק את כולם" — `POST /health/<gemini|claude|openai>`, which test the key from the API's `.env` (see `api/docs/health.md`)

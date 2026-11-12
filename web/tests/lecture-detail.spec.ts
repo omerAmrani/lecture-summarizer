@@ -132,4 +132,25 @@ test.describe('Lecture detail page', () => {
     await page.getByRole('button', { name: '🔄 סכם מחדש' }).click();
     expect((await summarizeReq).postDataJSON()).toMatchObject({ prompt: 'One-off tweak' });
   });
+
+  test('send-mail button: "send" before a mail was sent, "send again" after', async ({ page }) => {
+    let sentAt: string | null = null;
+    await page.route(STATUS_URL, (route) =>
+      route.fulfill({ json: { id: LECTURE_ID, name: 'E2E Test Lecture', status: 'summarized', currentSummary: '1', emailSentAt: sentAt } }),
+    );
+    await page.route(SUMMARIES_URL, (route) =>
+      route.fulfill({ json: { versions: [{ id: '1', date: '2026-01-01T00:00:00Z', backend: 'gemini' }], currentSummary: '1' } }),
+    );
+    await page.route(`**/api/classes/${CLASS_ID}/lectures/${LECTURE_ID}/summary`, (route) => route.fulfill({ json: { summary: '# hi' } }));
+    await page.route(`**/api/classes/${CLASS_ID}/lectures/${LECTURE_ID}/email`, (route) => {
+      sentAt = new Date().toISOString();
+      return route.fulfill({ json: { sentAt } });
+    });
+
+    await page.goto(`/classes/${CLASS_ID}/lectures/${LECTURE_ID}`);
+    const btn = page.getByTestId('send-mail');
+    await expect(btn).toHaveText(/שלח במייל/);
+    await btn.click();
+    await expect(btn).toHaveText(/שלח שוב/);
+  });
 });

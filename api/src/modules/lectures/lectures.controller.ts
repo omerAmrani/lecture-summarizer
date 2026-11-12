@@ -6,6 +6,7 @@ import path from 'path';
 import { ActiveJob, LecturesService } from './lectures.service';
 import { StorageService } from '../storage/storage.service';
 import { DownloadService } from '../download/download.service';
+import { EmailService, MailError } from '../email/email.service';
 import { SummarizeService } from '../summarize/summarize.service';
 import { DEFAULT_SUMMARY_PROMPT, validateSummaryPrompt } from '../summarize/backends/prompt';
 import { CurrentUser } from '../../common/current-user.decorator';
@@ -23,6 +24,7 @@ export class LecturesController {
     private readonly download: DownloadService,
     private readonly summarizeService: SummarizeService,
     private readonly transcribeProcessor: TranscribeProcessor,
+    private readonly email: EmailService,
   ) {}
 
   // Ownership gate: every endpoint below touches a classId, so every one
@@ -219,6 +221,8 @@ export class LecturesController {
       });
 
       console.log(`[summarize] done: ${classId}/${lectureId}`);
+      // Fire-and-forget: SMTP must never delay or fail the summarize. Errors are stored, not thrown.
+      void this.email.sendAfterSummarize(classId, lectureId);
 
       send({ type: 'done', summary, status: 'summarized' });
     } catch (err: any) {
@@ -252,6 +256,20 @@ export class LecturesController {
     if (!controller) return res.status(404).json({ error: 'No active job' });
     controller.abort();
     res.json({ ok: true });
+  }
+
+  // ── Summary mail ──────────────────────────────────────────────────────────────
+
+  // Send (again) the current summary to the Recipient from Settings.
+  @Post(':classId/lectures/:lectureId/email')
+  async sendSummaryMail(@CurrentUser() userId: string, @Param('classId') classId: string, @Param('lectureId') lectureId: string, @Res() res: Response) {
+    if (!this.requireOwnedClass(classId, userId, res)) return;
+    if (!this.requireLecture(classId, lectureId, res)) return;
+    try {
+      res.status(200).json(await this.email.deliverSummary(classId, lectureId));
+    } catch (err: any) {
+      res.status(err instanceof MailError ? err.status : 500).json({ error: err.message });
+    }
   }
 
   // ── Files ─────────────────────────────────────────────────────────────────────

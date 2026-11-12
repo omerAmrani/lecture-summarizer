@@ -31,3 +31,11 @@ _Avoid_: Default (when meaning the user's saved prompt)
 **One-off prompt**:
 A summary prompt edited for a single re-summarize. Becomes the custom prompt only if the user explicitly saves it as such.
 _Avoid_: Per-run prompt, override
+
+**Summary mail**:
+The email carrying a lecture's summary and a link to the lecture in the web UI, sent to the saved recipient after a successful summarize. Sent once per lecture; the user can send it again on demand.
+_Avoid_: Notification, report
+
+**Recipient**:
+The single email address in Settings that receives summary mails. Empty means summary mails are off.
+_Avoid_: Subscriber, mail target

@@ -6,6 +6,7 @@ import { marked } from 'marked';
 import { apiFetch, deleteResource } from '@/lib/api';
 import { streamSSE } from '@/lib/sse';
 import { useConfigStatus, missingFor } from '@/lib/configStatus';
+import { sendSummaryMail } from '@/lib/email';
 import { useToast } from '@/app/components/Toast';
 import { SummarizePicker, useSummarizeDefault } from '@/app/components/SummarizePicker';
 import type { SummarizeChoice } from '@/app/components/SummarizePicker';
@@ -24,6 +25,8 @@ interface LectureMeta {
   summarizeModel?: string | null;
   summarizedAt?: string | null;
   currentSummary?: string | null;
+  emailSentAt?: string | null;
+  lastEmailError?: string | null;
   progress?: { message?: string; pct?: number };
 }
 
@@ -334,6 +337,20 @@ export default function LecturePage() {
     }
   };
 
+  const [sendingMail, setSendingMail] = useState(false);
+  const sendMail = async () => {
+    setSendingMail(true);
+    try {
+      await sendSummaryMail(classId, lectureId);
+      showToast('המייל נשלח');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'שגיאה', true);
+    } finally {
+      setSendingMail(false);
+      loadLecture();
+    }
+  };
+
   const copyActive = async () => {
     if (activeView === 'transcript') {
       if (!transcript) return;
@@ -579,6 +596,14 @@ export default function LecturePage() {
                     שמור כברירת מחדל
                   </Button>
                 </>
+              )}
+              {summary && (
+                <Button block variant="ghost" onClick={sendMail} disabled={sendingMail} data-testid="send-mail">
+                  {lecture?.emailSentAt ? '✉️ שלח שוב במייל' : '✉️ שלח במייל'}
+                </Button>
+              )}
+              {lecture?.lastEmailError && !lecture.emailSentAt && (
+                <div style={{ fontSize: '0.72rem', color: 'var(--error)' }} data-testid="mail-error">שליחת המייל נכשלה: {lecture.lastEmailError}</div>
               )}
               <Button block onClick={runRetranscribe} disabled={jobActive || !!transcribeHint} title={transcribeHint ?? undefined}>
                 {retranscribeLabel !== RETRANSCRIBE_IDLE && <span className="spinner" />}

@@ -43,6 +43,11 @@ export const {
   GEMINI_API_KEY,
   ANTHROPIC_API_KEY,
   OPENAI_API_KEY,
+  SMTP_HOST,
+  SMTP_PORT = '587',
+  SMTP_USER,
+  SMTP_PASS,
+  SMTP_FROM,
   DATA_DIR,
   DEBUG,
 } = process.env;

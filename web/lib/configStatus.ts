@@ -5,7 +5,7 @@ import { apiFetch } from './api';
 
 // Which keys the API has in its .env — booleans only, never the values
 // (see GET /api/config/status, docs/adr/0002).
-export type CredentialId = 'opal' | 'groq' | 'gemini' | 'claude' | 'openai';
+export type CredentialId = 'opal' | 'groq' | 'gemini' | 'claude' | 'openai' | 'smtp';
 
 export interface ConfigStatus extends Record<CredentialId, boolean> {
   localMode: boolean;

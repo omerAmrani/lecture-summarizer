@@ -1,5 +1,6 @@
 import {
   OPENU_USERNAME, OPENU_PASSWORD, OPENU_ID, GROQ_API_KEY, GEMINI_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY,
+  SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM,
   SUMMARIZE_BACKEND, GEMINI_MODEL, CLAUDE_MODEL, OPENAI_MODEL, IS_LOCAL_MODE,
 } from './config';
 
@@ -26,6 +27,7 @@ export const ENV_KEYS = {
   gemini: 'GEMINI_API_KEY',
   claude: 'ANTHROPIC_API_KEY',
   openai: 'OPENAI_API_KEY',
+  smtp: 'SMTP_HOST / SMTP_USER / SMTP_PASS',
 } as const;
 
 export const MISSING_CREDENTIALS = {
@@ -37,6 +39,14 @@ export const MISSING_CREDENTIALS = {
 export function getOpalCredentials(): OpalCredentials | null {
   if (!OPENU_USERNAME || !OPENU_PASSWORD || !OPENU_ID) return null;
   return { username: OPENU_USERNAME, password: OPENU_PASSWORD, id: OPENU_ID };
+}
+
+export interface SmtpConfig { host: string; port: number; user: string; pass: string; from: string }
+
+// Optional: without it summary mails are skipped (or a manual send is rejected).
+export function getSmtpConfig(): SmtpConfig | null {
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
+  return { host: SMTP_HOST, port: Number(SMTP_PORT), user: SMTP_USER, pass: SMTP_PASS, from: SMTP_FROM || SMTP_USER };
 }
 
 export function getGroqApiKey(): string | null {
@@ -93,6 +103,7 @@ export function getCredentialsStatus() {
     gemini: !!GEMINI_API_KEY,
     claude: !!ANTHROPIC_API_KEY,
     openai: !!OPENAI_API_KEY,
+    smtp: !!getSmtpConfig(),
   };
   const anySummarize = SUMMARIZE_BACKENDS.some((b) => set[b]);
   return {

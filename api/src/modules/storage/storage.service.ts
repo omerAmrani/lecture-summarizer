@@ -7,7 +7,7 @@ import {
   getCurrentSummaryContent, deleteSummaryVersion,
   reloadFromDisk,
   getActiveSemester, setActiveSemester, getSummarizeDefault, setSummarizeDefault,
-  getSummarizePrompt, setSummarizePrompt,
+  getSummarizePrompt, setSummarizePrompt, getMailRecipient, setMailRecipient,
   getUserByEmail, createUser, getOrCreateUser,
   CLASSES_DIR,
 } from '../../storage';
@@ -38,6 +38,8 @@ export class StorageService {
   readonly setSummarizeDefault = setSummarizeDefault;
   readonly getSummarizePrompt = getSummarizePrompt;
   readonly setSummarizePrompt = setSummarizePrompt;
+  readonly getMailRecipient = getMailRecipient;
+  readonly setMailRecipient = setMailRecipient;
   readonly getUserByEmail = getUserByEmail;
   readonly createUser = createUser;
   readonly getOrCreateUser = getOrCreateUser;
