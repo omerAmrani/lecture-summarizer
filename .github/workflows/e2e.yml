@@ -8,7 +8,7 @@ on:
 
 jobs:
   api-integration:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # ponytail: pinned, Playwright has no chromium build for 26.04 yet; unpin after a Playwright bump supports it
 
     steps:
       - uses: actions/checkout@v4
@@ -27,7 +27,7 @@ jobs:
         run: pnpm --filter=@lecture-summarizer/api test
 
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # ponytail: pinned, Playwright has no chromium build for 26.04 yet; unpin after a Playwright bump supports it
 
     steps:
       - uses: actions/checkout@v4
