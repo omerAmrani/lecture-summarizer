@@ -14,7 +14,7 @@ Routes:
 
 There is no automatic queue runner or cron. Detection (`sync`) and per-lecture transcribe/summarize (`LecturesController`, see [lectures.md](lectures.md)) are both triggered manually from the web app.
 
-**Summary mail:** after each successful summarize the lecture is emailed once — see [email.md](email.md).
+**Send to study system:** never automatic; Omer sends a checked summary from the lecture page — see [study.md](study.md).
 
 **Concurrency:** each user can have at most one active transcribe/detect/sync job at a time, enforced in-memory per user (`src/job-guard.ts`), guarding against one user's jobs overloading the server or getting the shared OPAL login IP throttled. Abort is per-lecture via `AbortController` map.
 

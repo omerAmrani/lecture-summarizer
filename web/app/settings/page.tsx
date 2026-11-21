@@ -13,7 +13,6 @@ import { SummarizePicker, useSummarizeDefault } from '@/app/components/Summarize
 import type { SummarizeChoice } from '@/app/components/SummarizePicker';
 import { fetchSummaryPrompt, saveSummaryPrompt, resetSummaryPrompt } from '@/lib/summaryPrompt';
 import type { SummaryPromptState } from '@/lib/summaryPrompt';
-import { fetchMailRecipient, saveMailRecipient, sendTestMail } from '@/lib/email';
 
 interface DataDirInfo {
   current: string;
@@ -71,7 +70,7 @@ const ENV_KEYS: { id: CredentialId; label: string; getKey?: { url: string; hint:
   },
   { id: 'claude', label: 'Claude (סיכום)', getKey: { url: 'https://platform.claude.com/settings/keys', hint: 'בתשלום · צרו מפתח והדביקו ב-.env' } },
   { id: 'openai', label: 'OpenAI (סיכום)', getKey: { url: 'https://platform.openai.com/api-keys', hint: 'בתשלום · צרו מפתח והדביקו ב-.env' } },
-  { id: 'smtp', label: 'מייל (SMTP)' },
+  { id: 'study', label: 'מערכת הלימוד' },
 ];
 
 export default function SettingsPage() {
@@ -144,28 +143,6 @@ export default function SettingsPage() {
     if (!confirm('לחזור לפרומפט ברירת המחדל?')) return;
     runPromptAction(resetSummaryPrompt, 'שוחזר לברירת המחדל');
   };
-
-  // Summary mail: one Recipient, empty = off. SMTP keys live in .env.
-  const [recipient, setRecipient] = useState<string | null>(null);
-  const [recipientDraft, setRecipientDraft] = useState('');
-  const [mailMsg, setMailMsg] = useState<{ msg: string; error?: boolean } | null>(null);
-
-  useEffect(() => {
-    fetchMailRecipient().then((r) => { setRecipient(r); setRecipientDraft(r ?? ''); }).catch(() => {});
-  }, []);
-
-  const runMailAction = async (action: () => Promise<void>, okMsg: string, after?: () => void) => {
-    try {
-      await action();
-      after?.();
-      setMailMsg({ msg: okMsg });
-    } catch (err) {
-      setMailMsg({ msg: err instanceof Error ? err.message : 'שגיאה', error: true });
-    }
-  };
-  const saveRecipient = () =>
-    runMailAction(() => saveMailRecipient(recipientDraft.trim()), recipientDraft.trim() ? 'נשמר' : 'שליחת מיילים כבויה', () => setRecipient(recipientDraft.trim() || null));
-  const testMail = () => runMailAction(sendTestMail, 'מייל בדיקה נשלח');
 
   const loadDataDir = useCallback(async () => {
     try {
@@ -532,37 +509,6 @@ export default function SettingsPage() {
               </div>
             );
           })}
-        </div>
-
-        {/* Summary mail */}
-        <div className="set-card" data-testid="summary-mail">
-          <div className="set-card__h">
-            <div>
-              <div className="set-card__title">מייל סיכום</div>
-              <div className="set-card__sub">אחרי כל סיכום מוצלח נשלח מייל עם הסיכום · ריק = כבוי · שרת SMTP מוגדר ב-<code>.env</code></div>
-            </div>
-          </div>
-          <input
-            className="prompt-input"
-            type="email"
-            dir="ltr"
-            aria-label="נמען"
-            data-testid="mail-recipient"
-            placeholder="you@example.com"
-            value={recipientDraft}
-            onChange={(e) => { setRecipientDraft(e.target.value); setMailMsg(null); }}
-          />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-            <Button size="xs" onClick={saveRecipient} disabled={recipientDraft.trim() === (recipient ?? '')} data-testid="save-recipient">
-              שמור
-            </Button>
-            <Button size="xs" variant="ghost" onClick={testMail} disabled={!recipient || recipientDraft.trim() !== recipient} data-testid="test-mail">
-              שלח מייל בדיקה
-            </Button>
-            {mailMsg && (
-              <span style={{ fontSize: '0.78rem', color: mailMsg.error ? 'var(--error)' : 'var(--muted)' }}>{mailMsg.msg}</span>
-            )}
-          </div>
         </div>
 
         {/* Summary prompt */}

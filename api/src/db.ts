@@ -121,5 +121,8 @@ if (!hasUserId) {
 // After the rebuild above so a rebuilt lectures table gets them too.
 try { db.exec('ALTER TABLE lectures ADD COLUMN emailSentAt TEXT'); } catch (_) {}
 try { db.exec('ALTER TABLE lectures ADD COLUMN lastEmailError TEXT'); } catch (_) {}
+// The summary mail was replaced by "send to study system" (issue #11); the two columns above stay unused in old DBs.
+try { db.exec('ALTER TABLE lectures ADD COLUMN studySentAt TEXT'); } catch (_) {}
+try { db.exec('ALTER TABLE lectures ADD COLUMN lastStudyError TEXT'); } catch (_) {}
 
 export default db;
