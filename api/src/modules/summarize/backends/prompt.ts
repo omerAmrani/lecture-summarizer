@@ -10,7 +10,7 @@ For each section use this format:
 - Sub-topic: 2–4 sentences covering the key idea. Bold any concept or term name the first time it appears, e.g. **רקורסיה**
 - Example (if given): brief description of what it illustrates
 
-Skip filler, repetition, and admin announcements.`;
+Skip filler and repetition. Keep admin announcements and exam-scope remarks as their own section.`;
 
 export const MAX_SUMMARY_PROMPT_LENGTH = 10_000;
 

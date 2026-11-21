@@ -56,14 +56,6 @@ export function setSummarizePrompt(value: string | null): void {
 }
 
 // Recipient of summary mails; null = mail off. App config, so no meta.json mirror.
-export function getMailRecipient(): string | null {
-  return getSetting('mailRecipient')?.trim() || null;
-}
-
-export function setMailRecipient(value: string | null): void {
-  if (value) setSetting('mailRecipient', value);
-  else deleteSetting('mailRecipient');
-}
 
 function makeId(name: string): string {
   const clean = name.toLowerCase()
@@ -157,8 +149,8 @@ export function createLecture(classId: string, { name, url, lectureDate, status 
     lastError: null,
     lastErrorAt: null,
     startedAt: null,
-    emailSentAt: null,
-    lastEmailError: null,
+    studySentAt: null,
+    lastStudyError: null,
   };
   db.prepare(
     'INSERT INTO lectures (id, classId, name, url, lectureDate, addedAt, status) VALUES (?, ?, ?, ?, ?, ?, ?)'
@@ -316,14 +308,14 @@ export function reloadFromDisk(): { classes: number; lectures: number } {
         `INSERT OR REPLACE INTO lectures
           (id, classId, name, url, lectureDate, addedAt, summarizedAt, whisperModel, whisperBackend,
            summarizeModel, summarizeBackend, status, currentSummary, lastError, lastErrorAt, startedAt,
-           emailSentAt, lastEmailError)
+           studySentAt, lastStudyError)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).run(
         m.id, m.classId, m.name, m.url, m.lectureDate || null, m.addedAt,
         m.summarizedAt || null, m.whisperModel || null, m.whisperBackend || null,
         m.summarizeModel || null, m.summarizeBackend || null, m.status || 'pending',
         m.currentSummary || null, m.lastError || null, m.lastErrorAt || null, m.startedAt || null,
-        m.emailSentAt || null, m.lastEmailError || null,
+        m.studySentAt || null, m.lastStudyError || null,
       );
       lectureCount++;
 

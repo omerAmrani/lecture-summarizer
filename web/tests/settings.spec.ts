@@ -124,24 +124,4 @@ test.describe('Settings page', () => {
     await expect(card.getByTestId('prompt-custom-badge')).toHaveCount(0);
   });
 
-  test('summary mail: saves the recipient and enables the test button', async ({ page }) => {
-    let saved: string | null = null;
-    await page.route('**/api/settings/email', (route) => {
-      if (route.request().method() === 'PUT') saved = route.request().postDataJSON().recipient;
-      return route.fulfill({ json: { recipient: saved } });
-    });
-    let tested = false;
-    await page.route('**/api/settings/email/test', (route) => { tested = true; return route.fulfill({ json: { ok: true } }); });
-
-    await page.goto('/settings');
-    const card = page.getByTestId('summary-mail');
-    await expect(card.getByTestId('test-mail')).toBeDisabled();
-    await card.getByTestId('mail-recipient').fill('me@example.com');
-    await card.getByTestId('save-recipient').click();
-    await expect(card.getByTestId('test-mail')).toBeEnabled();
-    await card.getByTestId('test-mail').click();
-    await expect(card.getByText('מייל בדיקה נשלח')).toBeVisible();
-    expect(saved).toBe('me@example.com');
-    expect(tested).toBe(true);
-  });
 });

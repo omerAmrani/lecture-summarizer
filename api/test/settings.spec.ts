@@ -85,7 +85,7 @@ describe('Summarize settings + models', () => {
   describe('buildPrompt', () => {
     it('is byte-for-byte the pre-feature request with the Default prompt', () => {
       expect(buildPrompt('T', DEFAULT_SUMMARY_PROMPT)).toBe(`${DEFAULT_SUMMARY_PROMPT}\n\nTranscript:\nT`);
-      expect(buildPrompt('T', DEFAULT_SUMMARY_PROMPT).endsWith('Skip filler, repetition, and admin announcements.\n\nTranscript:\nT')).toBe(true);
+      expect(buildPrompt('T', DEFAULT_SUMMARY_PROMPT).endsWith('Skip filler and repetition. Keep admin announcements and exam-scope remarks as their own section.\n\nTranscript:\nT')).toBe(true);
     });
 
     it('always appends the transcript after a custom prompt', () => {
