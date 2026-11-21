@@ -133,24 +133,28 @@ test.describe('Lecture detail page', () => {
     expect((await summarizeReq).postDataJSON()).toMatchObject({ prompt: 'One-off tweak' });
   });
 
-  test('send-mail button: "send" before a mail was sent, "send again" after', async ({ page }) => {
+  test('send to study system: sends the version on screen, shows the counts, then "send again"', async ({ page }) => {
     let sentAt: string | null = null;
     await page.route(STATUS_URL, (route) =>
-      route.fulfill({ json: { id: LECTURE_ID, name: 'E2E Test Lecture', status: 'summarized', currentSummary: '1', emailSentAt: sentAt } }),
+      route.fulfill({ json: { id: LECTURE_ID, name: 'E2E Test Lecture', status: 'summarized', currentSummary: '1', studySentAt: sentAt } }),
     );
     await page.route(SUMMARIES_URL, (route) =>
       route.fulfill({ json: { versions: [{ id: '1', date: '2026-01-01T00:00:00Z', backend: 'gemini' }], currentSummary: '1' } }),
     );
     await page.route(`**/api/classes/${CLASS_ID}/lectures/${LECTURE_ID}/summary`, (route) => route.fulfill({ json: { summary: '# hi' } }));
-    await page.route(`**/api/classes/${CLASS_ID}/lectures/${LECTURE_ID}/email`, (route) => {
+    let body: any = null;
+    await page.route(`**/api/classes/${CLASS_ID}/lectures/${LECTURE_ID}/study`, (route) => {
+      body = route.request().postDataJSON();
       sentAt = new Date().toISOString();
-      return route.fulfill({ json: { sentAt } });
+      return route.fulfill({ json: { sentAt, passages: 4, duplicates: 0, notes: 1, suggestions: 2 } });
     });
 
     await page.goto(`/classes/${CLASS_ID}/lectures/${LECTURE_ID}`);
-    const btn = page.getByTestId('send-mail');
-    await expect(btn).toHaveText(/שלח במייל/);
+    const btn = page.getByTestId('send-study');
+    await expect(btn).toHaveText(/שלח למערכת הלימוד/);
     await btn.click();
+    await expect(page.getByTestId('study-result')).toHaveText('נשלח: 4 פסקאות, 1 הערות, 2 הצעות');
     await expect(btn).toHaveText(/שלח שוב/);
+    expect(body).toEqual({ summaryId: '1' });
   });
 });

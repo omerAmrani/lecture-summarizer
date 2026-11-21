@@ -6,7 +6,7 @@ import path from 'path';
 import { ActiveJob, LecturesService } from './lectures.service';
 import { StorageService } from '../storage/storage.service';
 import { DownloadService } from '../download/download.service';
-import { EmailService, MailError } from '../email/email.service';
+import { StudyService, StudyError } from '../study/study.service';
 import { SummarizeService } from '../summarize/summarize.service';
 import { DEFAULT_SUMMARY_PROMPT, validateSummaryPrompt } from '../summarize/backends/prompt';
 import { CurrentUser } from '../../common/current-user.decorator';
@@ -24,7 +24,7 @@ export class LecturesController {
     private readonly download: DownloadService,
     private readonly summarizeService: SummarizeService,
     private readonly transcribeProcessor: TranscribeProcessor,
-    private readonly email: EmailService,
+    private readonly study: StudyService,
   ) {}
 
   // Ownership gate: every endpoint below touches a classId, so every one
@@ -221,8 +221,6 @@ export class LecturesController {
       });
 
       console.log(`[summarize] done: ${classId}/${lectureId}`);
-      // Fire-and-forget: SMTP must never delay or fail the summarize. Errors are stored, not thrown.
-      void this.email.sendAfterSummarize(classId, lectureId);
 
       send({ type: 'done', summary, status: 'summarized' });
     } catch (err: any) {
@@ -258,17 +256,18 @@ export class LecturesController {
     res.json({ ok: true });
   }
 
-  // ── Summary mail ──────────────────────────────────────────────────────────────
+  // ── Send to study system ──────────────────────────────────────────────────────
 
-  // Send (again) the current summary to the Recipient from Settings.
-  @Post(':classId/lectures/:lectureId/email')
-  async sendSummaryMail(@CurrentUser() userId: string, @Param('classId') classId: string, @Param('lectureId') lectureId: string, @Res() res: Response) {
+  // Omer checked the summary: send the version on screen (summaryId, default the current one). Sending again is allowed.
+  @Post(':classId/lectures/:lectureId/study')
+  async sendToStudySystem(@CurrentUser() userId: string, @Param('classId') classId: string, @Param('lectureId') lectureId: string, @Body() body: any, @Res() res: Response) {
     if (!this.requireOwnedClass(classId, userId, res)) return;
     if (!this.requireLecture(classId, lectureId, res)) return;
+    const summaryId = typeof body?.summaryId === 'string' && body.summaryId ? body.summaryId : null;
     try {
-      res.status(200).json(await this.email.deliverSummary(classId, lectureId));
+      res.status(200).json(await this.study.send(classId, lectureId, summaryId));
     } catch (err: any) {
-      res.status(err instanceof MailError ? err.status : 500).json({ error: err.message });
+      res.status(err instanceof StudyError ? err.status : 500).json({ error: err.message });
     }
   }
 

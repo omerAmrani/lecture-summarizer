@@ -43,11 +43,9 @@ export const {
   GEMINI_API_KEY,
   ANTHROPIC_API_KEY,
   OPENAI_API_KEY,
-  SMTP_HOST,
-  SMTP_PORT = '587',
-  SMTP_USER,
-  SMTP_PASS,
-  SMTP_FROM,
+  // study-system Lecture summary ingest: the endpoint (e.g. https://<site>/api/lecture) and its push token
+  STUDY_SYSTEM_URL,
+  STUDY_PUSH_TOKEN,
   DATA_DIR,
   DEBUG,
 } = process.env;

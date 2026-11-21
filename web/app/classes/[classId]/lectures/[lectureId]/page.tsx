@@ -6,7 +6,7 @@ import { marked } from 'marked';
 import { apiFetch, deleteResource } from '@/lib/api';
 import { streamSSE } from '@/lib/sse';
 import { useConfigStatus, missingFor } from '@/lib/configStatus';
-import { sendSummaryMail } from '@/lib/email';
+import { sendToStudySystem, studyResultText } from '@/lib/study';
 import { useToast } from '@/app/components/Toast';
 import { SummarizePicker, useSummarizeDefault } from '@/app/components/SummarizePicker';
 import type { SummarizeChoice } from '@/app/components/SummarizePicker';
@@ -25,8 +25,8 @@ interface LectureMeta {
   summarizeModel?: string | null;
   summarizedAt?: string | null;
   currentSummary?: string | null;
-  emailSentAt?: string | null;
-  lastEmailError?: string | null;
+  studySentAt?: string | null;
+  lastStudyError?: string | null;
   progress?: { message?: string; pct?: number };
 }
 
@@ -337,16 +337,20 @@ export default function LecturePage() {
     }
   };
 
-  const [sendingMail, setSendingMail] = useState(false);
-  const sendMail = async () => {
-    setSendingMail(true);
+  // Omer checked the summary on screen: send that version. study-system replaces this lecture when sent again.
+  const [sendingStudy, setSendingStudy] = useState(false);
+  const [studyResult, setStudyResult] = useState<string | null>(null);
+  const sendStudy = async () => {
+    setSendingStudy(true);
+    setStudyResult(null);
     try {
-      await sendSummaryMail(classId, lectureId);
-      showToast('המייל נשלח');
+      const r = await sendToStudySystem(classId, lectureId, viewedSummaryId ?? history.currentSummary);
+      setStudyResult(studyResultText(r));
+      showToast('נשלח למערכת הלימוד');
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'שגיאה', true);
     } finally {
-      setSendingMail(false);
+      setSendingStudy(false);
       loadLecture();
     }
   };
@@ -598,12 +602,14 @@ export default function LecturePage() {
                 </>
               )}
               {summary && (
-                <Button block variant="ghost" onClick={sendMail} disabled={sendingMail} data-testid="send-mail">
-                  {lecture?.emailSentAt ? '✉️ שלח שוב במייל' : '✉️ שלח במייל'}
+                <Button block variant="ghost" onClick={sendStudy} disabled={sendingStudy} data-testid="send-study">
+                  {sendingStudy && <span className="spinner" />}
+                  {lecture?.studySentAt ? '📚 שלח שוב למערכת הלימוד' : '📚 שלח למערכת הלימוד'}
                 </Button>
               )}
-              {lecture?.lastEmailError && !lecture.emailSentAt && (
-                <div style={{ fontSize: '0.72rem', color: 'var(--error)' }} data-testid="mail-error">שליחת המייל נכשלה: {lecture.lastEmailError}</div>
+              {studyResult && <div style={{ fontSize: '0.72rem', color: 'var(--muted)' }} data-testid="study-result">{studyResult}</div>}
+              {lecture?.lastStudyError && !studyResult && (
+                <div style={{ fontSize: '0.72rem', color: 'var(--error)' }} data-testid="study-error">השליחה נכשלה: {lecture.lastStudyError}</div>
               )}
               <Button block onClick={runRetranscribe} disabled={jobActive || !!transcribeHint} title={transcribeHint ?? undefined}>
                 {retranscribeLabel !== RETRANSCRIBE_IDLE && <span className="spinner" />}

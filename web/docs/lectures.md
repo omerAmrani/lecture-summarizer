@@ -27,7 +27,7 @@
 - "📝 הצג פרומפט" (only when there's a summary) opens an editable textarea with the prompt the viewed version was made with — or the active prompt (Custom, else Default) for versions made before prompts were saved. Switching version or finishing a run closes it.
   - If the text differs from the active prompt, the next "🔄 סכם מחדש" sends it as a One-off `prompt` for that run only; otherwise the request is unchanged
   - "שמור כברירת מחדל" saves the text as the Custom prompt (`PUT /api/settings/summarize-prompt`), the same as saving in Settings
-- "✉️ שלח במייל" / "✉️ שלח שוב במייל" (only when there's a summary) calls `POST .../email` to mail the latest summary to the Recipient from Settings; the label flips once `emailSentAt` is set. A failed automatic mail shows `lastEmailError` under the button. See `api/docs/email.md`.
+- "📚 שלח למערכת הלימוד" / "📚 שלח שוב למערכת הלימוד" (only when there's a summary) calls `POST .../study` with the version on screen (`summaryId`); under the button it shows "נשלח: X פסקאות, Y הערות, Z הצעות", or `lastStudyError` after a failed send. The label flips once `studySentAt` is set. Helpers in `lib/study.ts`. See `api/docs/study.md`.
 - Buttons are disabled with a hint tooltip when the API's `.env` lacks the keys they need (`lib/configStatus.ts`): re-transcribe needs OPAL + Groq; summarize needs Gemini, Claude or OpenAI, plus OPAL + Groq when the lecture has no transcript yet (it transcribes first)
 
 **Gotcha:** summary streaming uses a buffer ref (`streamBufferRef`) to accumulate tokens before rendering, avoiding excessive re-renders during fast token streams.
