@@ -32,7 +32,8 @@ Generates an AI summary from a lecture transcript. Supports multiple backends an
 **Recommended models** come first in the list and are tagged in the UI: the cheap, long-context tier per provider, matched by name (Gemini `flash`, Claude `haiku`, OpenAI `mini`). No provider API exposes prices, so this is a name heuristic in `summarize.service.ts`.
 
 **Summary prompt** (see `GLOSSARY.md`):
-- `buildPrompt(transcript, prompt)` in `backends/prompt.ts` always appends `\n\nTranscript:\n<transcript>` after the prompt, so an edited prompt can't drop the transcript. With `DEFAULT_SUMMARY_PROMPT` the request is byte-for-byte what it was before prompts were editable.
+- `buildPrompt(transcript, prompt)` in `backends/prompt.ts` always appends `\n\nTranscript:\n<transcript>` after the prompt, so an edited prompt can't drop the transcript.
+- The Default prompt asks for one topic per `[mm:ss]` section, self-contained, with every exam-relevant detail, nothing from outside the lecture, and no length limit: each section becomes a study-system Source passage (see [study.md](study.md)).
 - Custom prompt: `GET /api/settings/summarize-prompt` → `{ prompt, default, isCustom }`; `PUT` `{ prompt }` saves it; `DELETE` resets to the Default prompt. Stored in `app_settings` (`summarizePrompt`) only, no `meta.json` mirror. Saving the Default prompt's exact text stores nothing (not custom).
 - Validation (`validateSummaryPrompt`, shared by `PUT` and the summarize body): trimmed, non-empty, at most 10,000 chars, else `400`.
 - The prompt is resolved once at the start of a run, so changing Settings mid-run doesn't affect it.

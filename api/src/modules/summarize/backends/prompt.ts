@@ -3,14 +3,21 @@ export const TRUNCATION_WARNING = '\n\n---\n⚠️ **סיכום קוצר עקב 
 export const SYSTEM_PROMPT = 'Always respond in Hebrew, regardless of the transcript content or length. Technical terms may remain in English.';
 
 export const DEFAULT_SUMMARY_PROMPT = `Summarize the following lecture in chronological order, section by section as it was taught.
-Your summary should be 2–3 pages long (roughly 1000–1500 words).
+Each section becomes a standalone study passage, matched to one course topic and later used to answer exam questions, so completeness matters more than brevity.
 
-For each section use this format:
-**[timestamp] Subject title**
-- Sub-topic: 2–4 sentences covering the key idea. Bold any concept or term name the first time it appears, e.g. **רקורסיה**
-- Example (if given): brief description of what it illustrates
+Every section starts with its own header line:
+**[mm:ss] Subject title**
+- Sub-topic: the explanation as the lecturer gave it: definitions, distinctions, mechanisms, why it matters. Bold each concept the first time it appears, e.g. **רקורסיה**, with the English term if the lecturer gave one.
+- Example / experiment (if given): who, what was done, what was found, what it shows.
 
-Skip filler and repetition. Keep admin announcements and exam-scope remarks as their own section.`;
+Rules:
+- One topic per section. When the lecturer moves to a different concept, start a new header at the time it began.
+- Each section must stand alone: no "as mentioned above"; restate the needed term.
+- Keep every detail an exam could ask about: definitions, researchers and theories, study designs and results, numbers, lists and stages, comparisons.
+- Use only what was said in the lecture; add nothing from outside it. If a term looks mis-transcribed, write the likely term followed by (?).
+- Skip only filler, repetition and off-topic chatter.
+- Admin announcements, exam-scope remarks and emphasis ("this will be on the exam", "skip this") get their own section with its own [mm:ss] header at the time they were said, never inside a content section.
+- No text before the first header or after the last section.`;
 
 export const MAX_SUMMARY_PROMPT_LENGTH = 10_000;
 
