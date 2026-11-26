@@ -8,7 +8,7 @@ Each section becomes a standalone study passage, matched to one course topic and
 Every section starts with its own header line:
 **[mm:ss] Subject title**
 - Sub-topic: the explanation as the lecturer gave it: definitions, distinctions, mechanisms, why it matters. Bold each concept the first time it appears, e.g. **רקורסיה**, with the English term if the lecturer gave one.
-- Example / experiment (if given): who, what was done, what was found, what it shows.
+- Example (if given): an example or experiment: who, what was done, what was found, what it shows.
 
 Rules:
 - One topic per section. When the lecturer moves to a different concept, start a new header at the time it began.
