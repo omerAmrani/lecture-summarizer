@@ -35,7 +35,6 @@ export default function NewCourseModal({ open, onClose, onCreated, editTarget }:
   const [detecting, setDetecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showFallback, setShowFallback] = useState(false);
-  const nameRef = useRef<HTMLInputElement>(null);
   const lastDetectedUrl = useRef<string | null>(null);
 
   useEffect(() => {
@@ -49,7 +48,6 @@ export default function NewCourseModal({ open, onClose, onCreated, editTarget }:
         setShowFallback(true);
         lastDetectedUrl.current = editTarget.opalCourseUrl || null;
       }
-      setTimeout(() => nameRef.current?.focus(), 50);
     } else {
       setName('');
       setUrl('');
@@ -184,7 +182,9 @@ export default function NewCourseModal({ open, onClose, onCreated, editTarget }:
         <div className="modal__field">
           <label>קישור לדף הקלטות וידאו של הקורס</label>
           <input
-            ref={nameRef}
+            // Focus on mount, in the same commit: a delayed focus() can land while the user
+            // (or a test) is already typing in another field and steal the rest of the input.
+            autoFocus
             type="url"
             dir="ltr"
             placeholder="https://opal.openu.ac.il/mod/ouilvideocollection/view.php?id=..."
